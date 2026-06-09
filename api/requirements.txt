@@ -1,0 +1,5 @@
+# Runtime dependencies for the FastAPI backend.
+# Pinned loosely for the scaffold; full lock comes with the real app.
+fastapi>=0.111,<0.112
+uvicorn[standard]>=0.30,<0.31
+pydantic>=2.7,<3
