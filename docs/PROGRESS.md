@@ -19,3 +19,10 @@
 | 12:54 | Atlas | US-QA-D01 | Reviewed CI slot; FF-merged `feature/foundation-e2e` → `integration/foundations`; pushed. | done | — | — | Consolidate docs + open PR |
 | 12:50 | Atlas | — | Consolidated STATUS/PROGRESS/DAILY-LOG; opening PR `integration/foundations` → `dev`. | done | `docs/STATUS.md`,`docs/PROGRESS.md`,`docs/DAILY-LOG.md` | — | Day-7 integration / Day-2 brand |
 | 13:00 | Atlas | US-E1-03 | GitGuardian flagged placeholder DB creds (false positive, no real secret). Fix (A): derive `DATABASE_URL` from `POSTGRES_*` vars + drop the literal default password (`CHANGE_ME` placeholder) — repo ships no real creds. (A2, human call) rewrote `integration/foundations` history so no commit ever contains the creds; force-pushed; deleted merged feature branches; de-pinned volatile SHAs from this log. | done | `docker-compose.yml`, `.env.example`, `docs/PROGRESS.md` | `docker compose config` resolves; `git log -S` clean | Confirm PR #1 GitGuardian green |
+| 13:10 | Atlas | — | PR #1 GitGuardian green (9/9). Prepped Day 2: created `integration/design` (off foundations, ADR-0013), `docs/brand/` + `docs/qa/` READMEs, STATUS handoff block. | done | `docs/brand/README.md`, `docs/qa/README.md`, `docs/decisions/0013-*.md`, `docs/STATUS.md` | — | Start Day 2 (Nova) |
+
+## 2026-06-10 — Day 2: Brand & design language
+
+| Time (UTC) | Agent | Story | Action | Status | Files | Tests | Next |
+|---|---|---|---|---|---|---|---|
+| _pending_ | | | | | | | |
