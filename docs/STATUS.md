@@ -1,33 +1,34 @@
 # STATUS — single source of truth
 
 > Atlas updates this at the start and end of every session. Keep it short.
-> Specialist agents move their story between sections when they pick it up / finish it.
 
-**Phase:** Week 1 · Day 1 (2026-06-09) — Repo & tooling foundation
-**Current branch:** `integration/foundations` (PR open → `dev`)
-**Last updated:** 2026-06-09 12:50Z
+## ▶ Next session — START HERE
+You are **Atlas**, the orchestrator (full brief: `.claude/agents/atlas.md`). It's **Week 1 · Day 2 (2026-06-10) — Brand & design language**.
+1. Read **only** this file + the **2026-06-10** block of `docs/plan/week-1.md`. Don't re-read Day 1 or the whole plan/repo.
+2. Working branch is already **`integration/design`** (created off `integration/foundations`, pushed). Do features on `feature/brand-*` → `integration/design`.
+3. Delegate: **US-E2-01/02/03 → Nova** · **US-QA-D02 → Juno (with Nova input)**. Nova uses the **Google Stitch** skill for logo directions.
+4. **Every Day-2 story is `[REVIEW]`** — have each agent produce the work, then **stop and ask the human** to approve (brand brief → logo pick → palette/type → QA matrix). Never self-approve.
+5. Deliverables: brand → `docs/brand/` · QA matrix → `docs/qa/` (each folder's README pins exact filenames + Stitch asset path).
+6. Memory is auto-loaded via `MEMORY.md`: keep CI green **by code** (GitGuardian scans full PR history); push branches + open real PRs.
 
-## ✅ Done
-- Project scaffold committed to `main` (CLAUDE.md, agents, 4-week plan, ADRs, PROGRESS log).
-- Branch tree live on GitHub: `main` → `dev` → `integration/foundations`; remote policy = push + real PRs.
-- **US-E1-02** (Atlas): `CONTRIBUTING.md` — branch flow + Conventional Commits.
-- **US-E1-01** (Rhea): monorepo `web/` (Next.js, TS strict) · `api/` (FastAPI, `GET /health`) · `infra/`; README + extended `.gitignore`.
-- **US-E1-03** (Rhea): `docker-compose.yml` (web + api + db pgvector) + multi-stage Dockerfiles + `.env.example`. Live `up` verified: images built, `/health` ok, `vector` ext enabled.
-- **US-E1-04** (Rhea): GitHub Actions CI skeleton — lint · type-check · test · docker-build placeholders + aggregate `ci` gate, green on no-op.
-- **US-QA-D01** (Juno): Playwright `e2e/` workspace, `npm run e2e` command, env contract, server-free `@smoke` test (2 passed), `e2e-smoke` CI job wired into `ci` gate.
-- **PR #1** (`integration/foundations` → `dev`): **all 9 checks green**, incl. GitGuardian (no real secrets; placeholder DB creds removed via `CHANGE_ME` + history rewrite).
+**Phase:** Week 1 · Day 2 (2026-06-10) — prepped, not started
+**Current branch:** `integration/design`
+**Last updated:** 2026-06-09 (Day-2 prep)
+
+## ✅ Done — Day 1 (shipped)
+- Branch tree on GitHub: `main` → `dev` → `integration/foundations`; remote policy = push + real PRs.
+- US-E1-01/02/03/04 + US-QA-D01: monorepo (`web/`+`api/`+`infra/`), docker-compose (pgvector, live-verified), CI skeleton, Playwright e2e smoke, CONTRIBUTING. ADRs 0009–0013.
+- **PR #1** (`integration/foundations` → `dev`): **9/9 checks green** incl. GitGuardian. Held for the Day-7 gate (US-QA-D07).
 
 ## 🔧 In progress
-- PR #1 stays open until the formal Day-7 integration gate (US-QA-D07: full dry-run + Juno sign-off + merge to `dev`).
+- Day 2 not started (scaffolding prepped). PR #1 stays open until Day-7 integration.
 
 ## ⛔ Blocked
 - _nothing_
 
 ## 🙋 Needs your decision
-- **Resolved:** git host = GitHub (`Ebraheem-03/agentic-ecommerce-app`); remote policy = push branches + open PRs.
-- **Day 2 is `[REVIEW]`-heavy (Nova brand):** US-E2-01 brand brief, US-E2-02 logo directions, US-E2-03 palette/type all need your taste. Have ~30 min to react when Day 2 runs.
-- **Later (Week 4 deploy):** free-tier accounts/keys — Vercel, Render/Fly, Supabase/Neon, Groq/Gemini.
+- **Day 2 ([REVIEW] x4):** approve brand brief · pick 1 of 3 logo directions · approve palette + type · approve QA matrix.
+- **Week 4 (deploy):** free-tier keys — Vercel, Render/Fly, Supabase/Neon, Groq/Gemini.
 
 ## ⏭️ Next up
-- Merge the foundations PR into `dev` once CI is green (or hold to Day-7 integration per plan).
-- **Day 2 (2026-06-10) — Brand & design language** (Nova, mostly `[REVIEW]`): see `docs/plan/week-1.md`.
+- Day 2 stories (above) → then Day 3 (design system & key screens; Nova/Iris turn tokens into code).
