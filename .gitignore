@@ -17,3 +17,29 @@ Thumbs.db
 
 # Logs / temp
 *.log
+
+# --- Node / Next.js (web/) ---
+node_modules/
+.next/
+out/
+build/
+dist/
+.turbo/
+*.tsbuildinfo
+.npm/
+.pnp.*
+.yarn/*
+
+# --- Python / FastAPI (api/) ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.so
