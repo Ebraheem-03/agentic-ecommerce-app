@@ -15,9 +15,10 @@
 - **US-E1-03** (Rhea): `docker-compose.yml` (web + api + db pgvector) + multi-stage Dockerfiles + `.env.example`. Live `up` verified: images built, `/health` ok, `vector` ext enabled.
 - **US-E1-04** (Rhea): GitHub Actions CI skeleton — lint · type-check · test · docker-build placeholders + aggregate `ci` gate, green on no-op.
 - **US-QA-D01** (Juno): Playwright `e2e/` workspace, `npm run e2e` command, env contract, server-free `@smoke` test (2 passed), `e2e-smoke` CI job wired into `ci` gate.
+- **PR #1** (`integration/foundations` → `dev`): **all 9 checks green**, incl. GitGuardian (no real secrets; placeholder DB creds removed via `CHANGE_ME` + history rewrite).
 
 ## 🔧 In progress
-- PR `integration/foundations` → `dev` open; awaiting CI + Juno final sign-off before merge (formal merge gate is Day 7 / US-QA-D07).
+- PR #1 stays open until the formal Day-7 integration gate (US-QA-D07: full dry-run + Juno sign-off + merge to `dev`).
 
 ## ⛔ Blocked
 - _nothing_
