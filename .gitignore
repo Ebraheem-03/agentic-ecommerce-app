@@ -1,0 +1,19 @@
+# --- Bootstrap .gitignore (Atlas) — Rhea extends this in US-E1-01 for web/ + api/ ---
+
+# Claude Code local-only settings (never commit personal permissions/state)
+.claude/settings.local.json
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Secrets — only .env.example is ever committed
+.env
+.env.*
+!.env.example
+
+# Logs / temp
+*.log
