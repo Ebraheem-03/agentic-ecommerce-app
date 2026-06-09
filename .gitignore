@@ -30,6 +30,12 @@ dist/
 .pnp.*
 .yarn/*
 
+# --- E2E (Playwright, e2e/) ---
+test-results/
+playwright-report/
+playwright/.cache/
+blob-report/
+
 # --- Python / FastAPI (api/) ---
 __pycache__/
 *.py[cod]
