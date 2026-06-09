@@ -1,0 +1,19 @@
+{
+  "defaultMode": "acceptEdits",
+  "permissions": {
+    "allow": [
+      "Edit", "Write", "Read",
+      "Bash(git *)",
+      "Bash(npm *)", "Bash(pnpm *)", "Bash(npx *)",
+      "Bash(python *)", "Bash(python3 *)", "Bash(pip *)", "Bash(uv *)",
+      "Bash(pytest *)", "Bash(alembic *)", "Bash(ruff *)", "Bash(mypy *)",
+      "Bash(docker *)", "Bash(docker compose *)", "Bash(make *)"
+    ],
+    "deny": [
+      "Bash(sudo *)",
+      "Bash(rm -rf /*)", "Bash(rm -rf ~*)",
+      "Bash(git push * --force*)", "Bash(git push -f*)",
+      "Read(.env)", "Read(**/.env)", "Edit(.env)", "Edit(**/.env)"
+    ]
+  }
+}
