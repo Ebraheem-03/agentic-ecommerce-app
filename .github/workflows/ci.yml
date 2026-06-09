@@ -1,0 +1,114 @@
+name: CI
+
+# Runs on PRs into dev and on pushes to integration branches.
+# Jobs are structured as the real lint / type-check / test / docker-build
+# pipeline but kept green on the current thin scaffold. Replace the
+# placeholder steps with real commands as each layer lands.
+on:
+  pull_request:
+    branches: [dev]
+  push:
+    branches:
+      - "integration/**"
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---- Web (Next.js / TypeScript) ------------------------------------------
+  lint:
+    name: lint (web)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      # Placeholder: swap for `npm ci && npm run lint` once deps are installed in CI.
+      - name: Lint (placeholder)
+        run: 'echo "TODO(web): npm ci && npm run lint"'
+
+  type-check:
+    name: type-check (web)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      # Placeholder: swap for `npm ci && npm run type-check` (tsc --noEmit).
+      - name: Type-check (placeholder)
+        run: 'echo "TODO(web): npm ci && npm run type-check"'
+
+  # ---- API (FastAPI / Python) ----------------------------------------------
+  lint-api:
+    name: lint (api)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Placeholder: swap for `pip install -r requirements-dev.txt && ruff check .`
+      - name: Ruff (placeholder)
+        run: 'echo "TODO(api): pip install -r requirements-dev.txt && ruff check ."'
+
+  type-check-api:
+    name: type-check (api)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Placeholder: swap for `pip install -r requirements-dev.txt && mypy app`
+      - name: Mypy (placeholder)
+        run: 'echo "TODO(api): pip install -r requirements-dev.txt && mypy app"'
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Placeholder: split into web (vitest/jest) and api (pytest) once tests exist.
+      - name: Test (placeholder)
+        run: 'echo "TODO: run web + api test suites"'
+
+  # ---- Docker build (compose images) ---------------------------------------
+  docker-build:
+    name: docker build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      # Placeholder: swap for `docker compose build` (or per-service buildx) once
+      # CI build minutes/caching are tuned. Kept as a no-op so the gate stays green.
+      - name: Docker build (placeholder)
+        run: 'echo "TODO: docker compose build web api"'
+
+  # Aggregate gate so branch protection can require a single check.
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    needs: [lint, type-check, lint-api, type-check-api, test, docker-build]
+    steps:
+      - name: All checks passed
+        run: echo "CI placeholder pipeline green."
