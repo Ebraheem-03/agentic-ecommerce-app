@@ -1,7 +1,8 @@
 # --- Bootstrap .gitignore (Atlas) — Rhea extends this in US-E1-01 for web/ + api/ ---
 
-# Claude Code local-only settings (never commit personal permissions/state)
+# Claude Code local-only settings + per-agent memory (never commit personal/local state)
 .claude/settings.local.json
+.claude/agent-memory/
 
 # OS / editor noise
 .DS_Store
