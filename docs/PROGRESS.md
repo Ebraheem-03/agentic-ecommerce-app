@@ -25,4 +25,16 @@
 
 | Time (UTC) | Agent | Story | Action | Status | Files | Tests | Next |
 |---|---|---|---|---|---|---|---|
-| _pending_ | | | | | | | |
+| 12:05 | Atlas | — | Read STATUS + week-1 Day-2 block + brand/qa READMEs. Ran the 4 [REVIEW] stories sequentially through human gates. | done | — | — | Delegate Nova US-E2-01 |
+| 12:06 | Nova | US-E2-01 | Brand brief: name options (Hearth/Maven/Tend), positioning, tone, personas, design hand-off. | done | `docs/brand/brand-brief.md` | — | Human name pick |
+| 12:08 | Atlas | US-E2-01 | Human locked **Hearth**. Committed `feature/brand-brief` → FF `integration/design` (`d00c447`). | done | `docs/brand/brand-brief.md` | — | US-E2-02 |
+| 12:10 | Nova | US-E2-02 | Round 1: 3 logo directions as code-native SVG (Stitch unreachable from subagent sandbox). | done | `docs/brand/logo-directions.md`, 6 SVG | XML well-formed | Render for human |
+| 12:12 | Atlas | US-E2-02 | No rasterizer present → rendered SVGs via Playwright/Chromium (installed chromium). Round 1 **rejected** by human. | done | — | playwright render | Round 2 |
+| 12:16 | Nova | US-E2-02 | Round 2: 6 distinct concepts (typographic/geometric/ember/monogram/guidance/wildcard); deleted round-1 assets. | done | `logo-directions.md`, 12 SVG | XML well-formed | Render board |
+| 12:20 | Atlas | US-E2-02 | Rendered round-2 board (light/dark, 120→16px) in headed Chromium. Human picked **"Keystone"** (Concept 2). Canonical assets + ADR-0014. Committed `feature/brand-logo` → FF (`df20f69`). | done | `hearth-logo-{mark,lockup}.svg`, ADR-0014 | playwright render | US-E2-03 + US-QA-D02 |
+| 12:22 | Juno | US-QA-D02 | QA matrix v0: 4 personas, 17 journeys (`J-*`, 1:1→D03), 9 WCAG AA, 5 RAGAS gates. | done | `docs/qa/qa-matrix.md` | — | Human review |
+| 12:24 | Atlas | — | Removed stray nested `e2e/.claude/agent-memory` (subagent local state); hardened `.gitignore` with `**/.claude/...`. | done | `.gitignore` | — | — |
+| 12:26 | Atlas | US-QA-D02 | Human approved matrix as-is (faithfulness ≥0.90). Committed `feature/qa-matrix-d02` → FF (`86d122d`). | done | `docs/qa/qa-matrix.md` | — | US-E2-03 |
+| 12:28 | Nova | US-E2-03 | Palette + type (run in background): Clay `#B5512F`/Ember `#E08A3C`, Fraunces+Outfit, warm-neutral ramp, semantic, light+dark, WCAG AA computed; self-contained specimen HTML. | done | `palette-and-type.md`, `preview/palette-and-type.html` | contrast verified | Render for human |
+| 12:34 | Atlas | US-E2-03 | Rendered specimen in headed Chromium. Human approved + chose Fraunces wordmark; recut lockup SVG Outfit→Fraunces. Committed `feature/brand-palette` → FF (`397f6ec`). | done | `hearth-logo-lockup.svg`, palette files | playwright render | End-of-day checkpoint |
+| 12:36 | Atlas | — | Day-2 close: updated STATUS/PROGRESS/DAILY-LOG; chore commit (.gitignore + tracking); pushed `integration/design`. | done | `docs/STATUS.md`, `docs/PROGRESS.md`, `docs/DAILY-LOG.md`, `.gitignore` | — | Day 3 (tokens→code, screens) |

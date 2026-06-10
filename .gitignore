@@ -3,6 +3,8 @@
 # Claude Code local-only settings + per-agent memory (never commit personal/local state)
 .claude/settings.local.json
 .claude/agent-memory/
+**/.claude/agent-memory/
+**/.claude/settings.local.json
 
 # OS / editor noise
 .DS_Store
