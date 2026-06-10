@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Hearth">
+  <!-- Concept 5 "Beacon": guidance, abstractly. A sweeping open path narrows as
+       it rises toward a single resting point — a guiding gesture that leads your
+       eye to the one chosen thing. No speech bubble, no face. The dot is 'here,
+       this one'; the path is the concierge bringing you to it. -->
+  <!-- guiding path: tapered stroke that arcs up toward the point -->
+  <path d="M11 50
+           C20 50, 27 47, 33 40
+           C38 34, 40 27, 41 21"
+        stroke="currentColor" stroke-width="7" stroke-linecap="round" fill="none"/>
+  <!-- the resting point: the chosen thing the path delivers you to -->
+  <circle cx="44.5" cy="15" r="6.5" fill="currentColor"/>
+</svg>
