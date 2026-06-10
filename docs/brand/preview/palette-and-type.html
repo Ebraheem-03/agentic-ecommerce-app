@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hearth — Palette & Type Specimen (US-E2-03)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Outfit:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand:#B5512F; --brand-strong:#933E22; --brand-tint:#F6E7DF;
+    --accent:#E08A3C; --accent-strong:#C5722B; --accent-tint:#FCEEDD;
+    --n-50:#FAF8F6; --n-100:#F3EFEB; --n-200:#E7E0D9; --n-300:#D4C9BF;
+    --n-400:#A99C8F; --n-500:#7C6F62; --n-600:#5E5247; --n-700:#433A31;
+    --n-800:#2C261F; --n-900:#1B1611;
+    --success:#3E7C5A; --warning:#C58A1E; --error:#C23B34; --info:#3F6E86;
+    --font-display:'Fraunces',Georgia,'Times New Roman',serif;
+    --font-sans:'Outfit','Segoe UI',system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-sans);color:var(--n-900);background:var(--n-50);line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:56px 32px 96px}
+  .display{font-family:var(--font-display);font-weight:600;font-size:3.5rem;line-height:1.05;letter-spacing:-.02em}
+  h2.sec{font-family:var(--font-display);font-weight:600;font-size:1.875rem;line-height:1.15;letter-spacing:-.01em;margin:64px 0 4px}
+  .sec-sub{color:var(--n-600);font-size:.875rem;margin-bottom:24px}
+  .lead{font-size:1.125rem;color:var(--n-600);max-width:60ch;margin-top:12px}
+  .rule{height:1px;background:var(--n-200);border:0;margin:8px 0 0}
+
+  /* swatches */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+  .sw{border:1px solid var(--n-200);border-radius:12px;overflow:hidden;background:#fff}
+  .sw .chip{height:76px}
+  .sw .meta{padding:9px 11px}
+  .sw .tok{font-size:.78rem;font-weight:500;color:var(--n-900)}
+  .sw .hex{font-size:.72rem;color:var(--n-500);font-variant-numeric:tabular-nums;text-transform:uppercase}
+
+  /* type scale */
+  .row{display:grid;grid-template-columns:118px 1fr;gap:24px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--n-200)}
+  .row .lab{font-size:.72rem;color:var(--n-500);font-weight:500;letter-spacing:.02em;text-transform:uppercase;padding-top:6px}
+  .row .spec{font-size:.7rem;color:var(--n-400);display:block;margin-top:6px;text-transform:none;letter-spacing:0;font-weight:400}
+  .t-display{font-family:var(--font-display);font-weight:600;font-size:3.5rem;line-height:1.05;letter-spacing:-.02em}
+  .t-h1{font-family:var(--font-display);font-weight:600;font-size:2.5rem;line-height:1.1;letter-spacing:-.015em}
+  .t-h2{font-family:var(--font-display);font-weight:600;font-size:1.875rem;line-height:1.15;letter-spacing:-.01em}
+  .t-h3{font-family:var(--font-display);font-weight:600;font-size:1.5rem;line-height:1.2}
+  .t-h4{font-weight:500;font-size:1.25rem;line-height:1.3}
+  .t-blg{font-size:1.125rem}
+  .t-body{font-size:1rem}
+  .t-sm{font-size:.875rem}
+  .t-cap{font-size:.75rem;font-weight:500;letter-spacing:.02em;text-transform:uppercase;color:var(--n-600)}
+
+  /* logo */
+  .logos{display:flex;align-items:flex-end;gap:48px;flex-wrap:wrap;padding:24px 0}
+  .wordmark{font-family:var(--font-display);font-weight:600;letter-spacing:-.01em;color:var(--n-900)}
+
+  /* agent voice demo */
+  .demo{display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start;margin-top:24px}
+  .btn{font-family:var(--font-sans);font-weight:500;font-size:1rem;border:0;border-radius:10px;padding:12px 22px;cursor:pointer}
+  .btn-accent{background:var(--accent);color:var(--n-900)}
+  .btn-brand{background:var(--brand);color:#fff}
+  .btn-ghost{background:transparent;color:var(--brand-strong);border:1px solid var(--n-300)}
+  .chat{max-width:380px;background:var(--accent-tint);border:1px solid #F1DCC4;border-radius:16px 16px 16px 4px;padding:14px 16px}
+  .chat .who{display:flex;align-items:center;gap:8px;font-size:.72rem;font-weight:500;letter-spacing:.02em;text-transform:uppercase;color:var(--accent-strong);margin-bottom:6px}
+  .chat .who .dot{width:16px;height:16px}
+  .chat p{font-size:1.0625rem;color:var(--n-800)}
+
+  /* dark section */
+  .dark{background:var(--n-900);color:var(--n-100);border-radius:20px;padding:40px 36px;margin-top:28px}
+  .dark .sw{background:var(--n-800);border-color:var(--n-700)}
+  .dark .sw .tok{color:var(--n-100)}
+  .dark .sw .hex{color:var(--n-400)}
+  .dark .wordmark{color:var(--n-100)}
+  .dark .chat{background:#3a2a1c;border-color:#553d28}
+  .dark .chat p{color:var(--n-100)}
+  .dark .btn-ghost{color:var(--accent);border-color:var(--n-700)}
+  .dark-card{background:var(--n-800);border:1px solid var(--n-700);border-radius:12px;padding:16px 18px;color:var(--n-100)}
+  .dark-muted{color:var(--n-400);font-size:.875rem}
+
+  .a11y{width:100%;border-collapse:collapse;margin-top:14px;font-size:.85rem}
+  .a11y th,.a11y td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--n-200)}
+  .a11y th{font-size:.72rem;text-transform:uppercase;letter-spacing:.03em;color:var(--n-500);font-weight:500}
+  .a11y .pass{color:var(--success);font-weight:500}
+  .a11y .fail{color:var(--error);font-weight:500}
+  .a11y .lg{color:var(--warning);font-weight:500}
+  .pairbox{display:inline-block;padding:3px 10px;border-radius:6px;font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <p class="t-cap" style="color:var(--accent-strong)">Hearth · Brand System · US-E2-03</p>
+  <h1 class="display" style="margin-top:6px">Palette &amp; Type</h1>
+  <p class="lead">Fired-clay terracotta and a single ember accent, set in a humanist serif. Warm and considered — a calm concierge, not a fintech dashboard.</p>
+
+  <!-- LOGO IN BRAND COLORS -->
+  <h2 class="sec">Keystone in brand color</h2>
+  <p class="sec-sub">Outer plane → <code>--brand #B5512F</code> · inner plane → <code>--accent #E08A3C</code>. The duotone + serif wordmark is what keeps the abstract mark from reading generic-tech.</p>
+  <hr class="rule">
+  <div class="logos">
+    <!-- 64px lockup -->
+    <svg width="248" height="64" viewBox="0 0 248 64" role="img" aria-label="Hearth">
+      <path d="M32 8 L54 21 C56 22.2,56 25,54 26.2 L34 38 C32.8 38.7,31.2 38.7,30 38 L10 26.2 C8 25,8 22.2,10 21 Z" fill="#B5512F"/>
+      <path d="M32 28 L50 38.5 C52 39.7,52 42.5,50 43.7 L34 53 C32.8 53.7,31.2 53.7,30 53 L14 43.7 C12 42.5,12 39.7,14 38.5 Z" fill="#E08A3C"/>
+      <text x="70" y="44" fill="#1B1611" font-family="Fraunces,serif" font-size="36" font-weight="600" letter-spacing="-0.4">Hearth</text>
+    </svg>
+    <!-- 40px mark -->
+    <svg width="40" height="40" viewBox="0 0 64 64" role="img" aria-label="Hearth mark">
+      <path d="M32 8 L54 21 C56 22.2,56 25,54 26.2 L34 38 C32.8 38.7,31.2 38.7,30 38 L10 26.2 C8 25,8 22.2,10 21 Z" fill="#B5512F"/>
+      <path d="M32 28 L50 38.5 C52 39.7,52 42.5,50 43.7 L34 53 C32.8 53.7,31.2 53.7,30 53 L14 43.7 C12 42.5,12 39.7,14 38.5 Z" fill="#E08A3C"/>
+    </svg>
+    <!-- 24px mark (favicon) -->
+    <svg width="24" height="24" viewBox="0 0 64 64" role="img" aria-label="Hearth favicon">
+      <path d="M32 8 L54 21 C56 22.2,56 25,54 26.2 L34 38 C32.8 38.7,31.2 38.7,30 38 L10 26.2 C8 25,8 22.2,10 21 Z" fill="#B5512F"/>
+      <path d="M32 28 L50 38.5 C52 39.7,52 42.5,50 43.7 L34 53 C32.8 53.7,31.2 53.7,30 53 L14 43.7 C12 42.5,12 39.7,14 38.5 Z" fill="#E08A3C"/>
+    </svg>
+    <span class="t-cap" style="align-self:center;color:var(--n-400)">248 · 40 · 24px</span>
+  </div>
+
+  <!-- BRAND COLORS -->
+  <h2 class="sec">Brand</h2>
+  <p class="sec-sub">A grown-up clay primary + an ember accent reserved for the agent's voice.</p>
+  <hr class="rule" style="margin-bottom:20px">
+  <div class="grid">
+    <div class="sw"><div class="chip" style="background:#B5512F"></div><div class="meta"><div class="tok">--brand</div><div class="hex">#B5512F</div></div></div>
+    <div class="sw"><div class="chip" style="background:#933E22"></div><div class="meta"><div class="tok">--brand-strong</div><div class="hex">#933E22</div></div></div>
+    <div class="sw"><div class="chip" style="background:#F6E7DF"></div><div class="meta"><div class="tok">--brand-tint</div><div class="hex">#F6E7DF</div></div></div>
+    <div class="sw"><div class="chip" style="background:#E08A3C"></div><div class="meta"><div class="tok">--accent · agent</div><div class="hex">#E08A3C</div></div></div>
+    <div class="sw"><div class="chip" style="background:#C5722B"></div><div class="meta"><div class="tok">--accent-strong</div><div class="hex">#C5722B</div></div></div>
+    <div class="sw"><div class="chip" style="background:#FCEEDD"></div><div class="meta"><div class="tok">--accent-tint</div><div class="hex">#FCEEDD</div></div></div>
+  </div>
+
+  <!-- NEUTRALS -->
+  <h2 class="sec">Warm neutrals</h2>
+  <p class="sec-sub">Hue-shifted toward earth — warm, never cold blue-gray. Carries the hearth warmth quietly.</p>
+  <hr class="rule" style="margin-bottom:20px">
+  <div class="grid">
+    <div class="sw"><div class="chip" style="background:#FAF8F6"></div><div class="meta"><div class="tok">--n-50</div><div class="hex">#FAF8F6</div></div></div>
+    <div class="sw"><div class="chip" style="background:#F3EFEB"></div><div class="meta"><div class="tok">--n-100</div><div class="hex">#F3EFEB</div></div></div>
+    <div class="sw"><div class="chip" style="background:#E7E0D9"></div><div class="meta"><div class="tok">--n-200</div><div class="hex">#E7E0D9</div></div></div>
+    <div class="sw"><div class="chip" style="background:#D4C9BF"></div><div class="meta"><div class="tok">--n-300</div><div class="hex">#D4C9BF</div></div></div>
+    <div class="sw"><div class="chip" style="background:#A99C8F"></div><div class="meta"><div class="tok">--n-400</div><div class="hex">#A99C8F</div></div></div>
+    <div class="sw"><div class="chip" style="background:#7C6F62"></div><div class="meta"><div class="tok">--n-500</div><div class="hex">#7C6F62</div></div></div>
+    <div class="sw"><div class="chip" style="background:#5E5247"></div><div class="meta"><div class="tok">--n-600</div><div class="hex">#5E5247</div></div></div>
+    <div class="sw"><div class="chip" style="background:#433A31"></div><div class="meta"><div class="tok">--n-700</div><div class="hex">#433A31</div></div></div>
+    <div class="sw"><div class="chip" style="background:#2C261F"></div><div class="meta"><div class="tok">--n-800</div><div class="hex">#2C261F</div></div></div>
+    <div class="sw"><div class="chip" style="background:#1B1611"></div><div class="meta"><div class="tok">--n-900</div><div class="hex">#1B1611</div></div></div>
+  </div>
+
+  <!-- SEMANTIC -->
+  <h2 class="sec">Semantic</h2>
+  <p class="sec-sub">Tuned to sit in the warm palette — not Bootstrap defaults.</p>
+  <hr class="rule" style="margin-bottom:20px">
+  <div class="grid">
+    <div class="sw"><div class="chip" style="background:#3E7C5A"></div><div class="meta"><div class="tok">--success</div><div class="hex">#3E7C5A</div></div></div>
+    <div class="sw"><div class="chip" style="background:#C58A1E"></div><div class="meta"><div class="tok">--warning</div><div class="hex">#C58A1E</div></div></div>
+    <div class="sw"><div class="chip" style="background:#C23B34"></div><div class="meta"><div class="tok">--error</div><div class="hex">#C23B34</div></div></div>
+    <div class="sw"><div class="chip" style="background:#3F6E86"></div><div class="meta"><div class="tok">--info</div><div class="hex">#3F6E86</div></div></div>
+  </div>
+
+  <!-- TYPE SCALE -->
+  <h2 class="sec">Type scale</h2>
+  <p class="sec-sub">Fraunces (humanist serif) for display/headings + Outfit (geometric-humanist sans) for UI/body.</p>
+  <hr class="rule">
+  <div class="row"><div class="lab">display<span class="spec">Fraunces 600 · 56/3.5rem · lh 1.05</span></div><div class="t-display">Buying is a conversation</div></div>
+  <div class="row"><div class="lab">h1<span class="spec">Fraunces 600 · 40/2.5rem · lh 1.1</span></div><div class="t-h1">I found three that fit</div></div>
+  <div class="row"><div class="lab">h2<span class="spec">Fraunces 600 · 30/1.875rem · lh 1.15</span></div><div class="t-h2">Tended for you</div></div>
+  <div class="row"><div class="lab">h3<span class="spec">Fraunces 600 · 24/1.5rem · lh 1.2</span></div><div class="t-h3">Order on the way</div></div>
+  <div class="row"><div class="lab">h4<span class="spec">Outfit 500 · 20/1.25rem · lh 1.3</span></div><div class="t-h4">Walnut desk lamp</div></div>
+  <div class="row"><div class="lab">body-lg<span class="spec">Outfit 400 · 18/1.125rem · lh 1.6</span></div><div class="t-blg">Lead paragraph and chat copy. This one's the best value — here's why.</div></div>
+  <div class="row"><div class="lab">body<span class="spec">Outfit 400 · 16/1rem · lh 1.6</span></div><div class="t-body">Default body copy. Free returns within 30 days. It's out of stock until Friday — I'll watch it for you and let you know.</div></div>
+  <div class="row"><div class="lab">small<span class="spec">Outfit 400 · 14/0.875rem · lh 1.5</span></div><div class="t-sm">Secondary detail and helper text sits at the small step.</div></div>
+  <div class="row"><div class="lab">caption<span class="spec">Outfit 500 · 12/0.75rem · +0.02em</span></div><div class="t-cap">In stock · ships today</div></div>
+
+  <!-- WORDMARK -->
+  <h2 class="sec">Wordmark</h2>
+  <p class="sec-sub">Fraunces 600, title-case, tracking -0.01em. Recommend re-cutting the lockup SVG wordmark from Outfit to Fraunces (flagged for sign-off).</p>
+  <hr class="rule">
+  <div style="padding:22px 0;display:flex;gap:40px;align-items:baseline;flex-wrap:wrap">
+    <span class="wordmark" style="font-size:3rem">Hearth</span>
+    <span class="wordmark" style="font-size:2rem">Hearth</span>
+    <span class="wordmark" style="font-size:1.25rem">Hearth</span>
+  </div>
+
+  <!-- AGENT VOICE -->
+  <h2 class="sec">Agent voice in context</h2>
+  <p class="sec-sub">The ember accent appears only where the agent speaks or where you act. Primary CTA uses dark ink on ember (6.7:1).</p>
+  <hr class="rule">
+  <div class="demo">
+    <div class="chat">
+      <div class="who">
+        <svg class="dot" viewBox="0 0 64 64" aria-hidden="true">
+          <path d="M32 8 L54 21 C56 22.2,56 25,54 26.2 L34 38 C32.8 38.7,31.2 38.7,30 38 L10 26.2 C8 25,8 22.2,10 21 Z" fill="#B5512F"/>
+          <path d="M32 28 L50 38.5 C52 39.7,52 42.5,50 43.7 L34 53 C32.8 53.7,31.2 53.7,30 53 L14 43.7 C12 42.5,12 39.7,14 38.5 Z" fill="#E08A3C"/>
+        </svg>
+        Hearth
+      </div>
+      <p>I found three desk lamps under $80 with good reviews — this walnut one is the best value. Want me to add it to your cart?</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <button class="btn btn-accent">Add to cart</button>
+      <button class="btn btn-brand">Checkout with Hearth</button>
+      <button class="btn btn-ghost">See the other two</button>
+      <span class="t-cap" style="color:var(--n-400)">accent CTA · brand CTA · ghost</span>
+    </div>
+  </div>
+
+  <!-- DARK THEME -->
+  <h2 class="sec">Dark theme</h2>
+  <p class="sec-sub">Warm-dark (#1B1611), not black. Ember keeps its glow with dark ink on top.</p>
+  <hr class="rule">
+  <div class="dark">
+    <svg width="248" height="64" viewBox="0 0 248 64" role="img" aria-label="Hearth on dark">
+      <path d="M32 8 L54 21 C56 22.2,56 25,54 26.2 L34 38 C32.8 38.7,31.2 38.7,30 38 L10 26.2 C8 25,8 22.2,10 21 Z" fill="#B5512F"/>
+      <path d="M32 28 L50 38.5 C52 39.7,52 42.5,50 43.7 L34 53 C32.8 53.7,31.2 53.7,30 53 L14 43.7 C12 42.5,12 39.7,14 38.5 Z" fill="#E08A3C"/>
+      <text x="70" y="44" fill="#F3EFEB" font-family="Fraunces,serif" font-size="36" font-weight="600" letter-spacing="-0.4">Hearth</text>
+    </svg>
+
+    <div class="grid" style="margin-top:28px">
+      <div class="sw"><div class="chip" style="background:#1B1611"></div><div class="meta"><div class="tok">--bg</div><div class="hex">#1B1611</div></div></div>
+      <div class="sw"><div class="chip" style="background:#2C261F"></div><div class="meta"><div class="tok">--surface</div><div class="hex">#2C261F</div></div></div>
+      <div class="sw"><div class="chip" style="background:#433A31"></div><div class="meta"><div class="tok">--border</div><div class="hex">#433A31</div></div></div>
+      <div class="sw"><div class="chip" style="background:#F3EFEB"></div><div class="meta"><div class="tok" style="color:#1B1611">--text</div><div class="hex" style="color:#5E5247">#F3EFEB</div></div></div>
+      <div class="sw"><div class="chip" style="background:#A99C8F"></div><div class="meta"><div class="tok">--text-muted</div><div class="hex">#A99C8F</div></div></div>
+      <div class="sw"><div class="chip" style="background:#E08A3C"></div><div class="meta"><div class="tok">--accent</div><div class="hex">#E08A3C</div></div></div>
+    </div>
+
+    <div class="demo">
+      <div class="chat">
+        <div class="who">
+          <svg class="dot" viewBox="0 0 64 64" aria-hidden="true">
+            <path d="M32 8 L54 21 C56 22.2,56 25,54 26.2 L34 38 C32.8 38.7,31.2 38.7,30 38 L10 26.2 C8 25,8 22.2,10 21 Z" fill="#B5512F"/>
+            <path d="M32 28 L50 38.5 C52 39.7,52 42.5,50 43.7 L34 53 C32.8 53.7,31.2 53.7,30 53 L14 43.7 C12 42.5,12 39.7,14 38.5 Z" fill="#E08A3C"/>
+          </svg>
+          Hearth
+        </div>
+        <p>Your order shipped — it'll arrive Thursday. I'll keep an eye on the tracking.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <button class="btn btn-accent">Track order</button>
+        <button class="btn btn-brand">View receipt</button>
+        <button class="btn btn-ghost">Need help?</button>
+      </div>
+    </div>
+    <div class="dark-card" style="margin-top:20px">
+      <strong>Card on warm-dark surface.</strong>
+      <span class="dark-muted"> &nbsp;Muted text (#A99C8F) on surface (#2C261F) — 5.6:1, AA.</span>
+    </div>
+  </div>
+
+  <!-- A11Y -->
+  <h2 class="sec">Accessibility — WCAG 2.1 AA</h2>
+  <p class="sec-sub">Computed contrast for the key pairings. The one failing pair drives the canonical-button rule (dark ink, not white, on ember).</p>
+  <hr class="rule">
+  <table class="a11y">
+    <tr><th>Pairing</th><th>Sample</th><th>Ratio</th><th>Verdict</th></tr>
+    <tr><td>text on bg (light)</td><td><span class="pairbox" style="background:#FAF8F6;color:#1B1611">Taken care of</span></td><td>17.0:1</td><td class="pass">AA + AAA</td></tr>
+    <tr><td>muted text on surface</td><td><span class="pairbox" style="background:#FFF;color:#5E5247">secondary copy</span></td><td>7.6:1</td><td class="pass">AA</td></tr>
+    <tr><td>white on accent (ember)</td><td><span class="pairbox" style="background:#E08A3C;color:#fff">Add to cart</span></td><td>2.7:1</td><td class="fail">✗ fails</td></tr>
+    <tr><td><strong>ink on accent (ember)</strong></td><td><span class="pairbox" style="background:#E08A3C;color:#1B1611">Add to cart</span></td><td>6.7:1</td><td class="pass">AA + AAA · default CTA</td></tr>
+    <tr><td>white on brand (clay)</td><td><span class="pairbox" style="background:#B5512F;color:#fff">Checkout</span></td><td>5.0:1</td><td class="pass">AA</td></tr>
+    <tr><td>accent-strong as text</td><td><span class="pairbox" style="background:#fff;color:#C5722B">large label</span></td><td>3.6:1</td><td class="lg">AA large/UI only</td></tr>
+    <tr><td>text on bg (dark)</td><td><span class="pairbox" style="background:#1B1611;color:#F3EFEB">Taken care of</span></td><td>15.7:1</td><td class="pass">AA + AAA</td></tr>
+    <tr><td>muted text on surface (dark)</td><td><span class="pairbox" style="background:#2C261F;color:#A99C8F">secondary copy</span></td><td>5.6:1</td><td class="pass">AA</td></tr>
+  </table>
+
+  <p style="margin-top:48px;color:var(--n-400);font-size:.8rem">Hearth · US-E2-03 palette &amp; type specimen · [REVIEW] — awaiting human sign-off · feeds Iris (Day 3)</p>
+
+</div>
+</body>
+</html>
