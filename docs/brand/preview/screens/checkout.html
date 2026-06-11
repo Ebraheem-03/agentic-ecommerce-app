@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hearth — Checkout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Outfit:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="screens.css">
+</head>
+<body data-testid="checkout-page">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand-lockup" href="home.html" aria-label="Hearth home">
+      <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 8 L54 21 C56 22.2,56 25,54 26.2 L34 38 C32.8 38.7,31.2 38.7,30 38 L10 26.2 C8 25,8 22.2,10 21 Z" fill="var(--brand)"/><path d="M32 28 L50 38.5 C52 39.7,52 42.5,50 43.7 L34 53 C32.8 53.7,31.2 53.7,30 53 L14 43.7 C12 42.5,12 39.7,14 38.5 Z" fill="var(--accent)"/></svg>
+      <span class="wordmark">Hearth</span>
+    </a>
+    <div class="header-actions"><span class="small muted row" style="gap:8px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.7"/></svg> Secure checkout</span></div>
+  </div>
+</header>
+
+<main id="main" class="section-tight">
+  <div class="wrap">
+    <h1 class="h1 serif" style="margin-bottom:8px;">Checkout</h1>
+    <p class="small muted" style="margin-bottom:28px;">Step 2 of 2 · Review &amp; place order</p>
+
+    <div class="grid" style="grid-template-columns: 1fr 380px; gap:32px; align-items:start;">
+      <div class="stack-lg">
+        <!-- Address -->
+        <section class="card shadow-soft card-pad stack">
+          <h2 class="h3 serif">Shipping address</h2>
+          <form class="stack" data-testid="checkout-address-form" onsubmit="return false">
+            <div class="grid grid-2" style="gap:16px;">
+              <div class="field"><label for="fn">First name</label><input id="fn" class="input" autocomplete="given-name" value="Mara"></div>
+              <div class="field"><label for="ln">Last name</label><input id="ln" class="input" autocomplete="family-name" value="Ellison"></div>
+            </div>
+            <div class="field">
+              <label for="a1">Address line 1</label>
+              <input id="a1" class="input" data-testid="checkout-address-line1" autocomplete="address-line1" value="14 Kiln Lane">
+            </div>
+            <div class="field"><label for="a2">Address line 2 <span class="hint">(optional)</span></label><input id="a2" class="input" autocomplete="address-line2"></div>
+            <!-- Field with an announced, tied error (a11y pattern; shown for contract) -->
+            <div class="grid grid-2" style="gap:16px;">
+              <div class="field field-error">
+                <label for="pc">Postcode</label>
+                <input id="pc" class="input" autocomplete="postal-code" value="BS1" aria-invalid="true" aria-describedby="pc-err">
+                <span class="error-text" id="pc-err" data-testid="checkout-address-error" role="alert"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M12 7v6M12 16h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg> Enter a full UK postcode (e.g. BS1 4ST).</span>
+              </div>
+              <div class="field"><label for="ct">City</label><input id="ct" class="input" autocomplete="address-level2" value="Bristol"></div>
+            </div>
+          </form>
+        </section>
+
+        <!-- Payment -->
+        <section class="card shadow-soft card-pad stack">
+          <h2 class="h3 serif">Payment</h2>
+          <form class="stack" data-testid="checkout-payment-form" onsubmit="return false">
+            <div class="field"><label for="cc">Card number</label><input id="cc" class="input" inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456"></div>
+            <div class="grid grid-2" style="gap:16px;">
+              <div class="field"><label for="exp">Expiry</label><input id="exp" class="input" autocomplete="cc-exp" placeholder="MM / YY"></div>
+              <div class="field"><label for="cvc">CVC</label><input id="cvc" class="input" autocomplete="cc-csc" placeholder="123"></div>
+            </div>
+            <!-- decline error (registered state; hidden) -->
+            <div class="error-text" data-testid="checkout-payment-error" role="alert" style="display:none;">Your card was declined. Try another card or payment method.</div>
+          </form>
+        </section>
+      </div>
+
+      <!-- Order summary -->
+      <aside class="card shadow-soft card-pad stack" data-testid="checkout-order-summary" style="position:sticky;top:96px;">
+        <h2 class="h3 serif">Order summary</h2>
+        <div class="row" style="gap:12px;">
+          <div class="thumb ph ph-moss" aria-hidden="true" style="width:48px;height:48px;aspect-ratio:auto;border-radius:8px;flex:none;"></div>
+          <div style="flex:1;"><div class="small" style="font-weight:500;">Wood-fired serving bowl</div><div class="caption" style="text-transform:none;">Deep moss · Qty 1</div></div>
+          <span class="small">$92</span>
+        </div>
+        <div class="row" style="gap:12px;">
+          <div class="thumb ph ph-rust" aria-hidden="true" style="width:48px;height:48px;aspect-ratio:auto;border-radius:8px;flex:none;"></div>
+          <div style="flex:1;"><div class="small" style="font-weight:500;">Stoneware mug, set of 2</div><div class="caption" style="text-transform:none;">Ember · Qty 1</div></div>
+          <span class="small">$72</span>
+        </div>
+        <hr class="divider">
+        <div class="stack-sm small">
+          <div class="between"><span class="muted">Subtotal</span><span>$164.00</span></div>
+          <div class="between"><span class="muted">Shipping</span><span>$6.00</span></div>
+          <div class="between"><span class="muted">Tax</span><span>$13.12</span></div>
+        </div>
+        <hr class="divider">
+        <div class="between"><span class="h4">Total</span><span class="h3 serif price">$183.12</span></div>
+        <button class="btn btn-accent btn-lg btn-block" data-testid="checkout-place-order">Place order</button>
+
+        <!-- confirmation (registered state; hidden) -->
+        <div class="badge badge-success" data-testid="checkout-confirmation" role="status" style="display:none;">Order HRT-2381 placed</div>
+
+        <p class="caption" style="text-transform:none;text-align:center;">By placing your order you agree to Hearth’s terms &amp; maker policy.</p>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap"><div class="foot-bottom" style="border:none;margin:0;padding:24px 0;"><span>© 2026 Hearth. Made with care.</span><span>Privacy · Terms · Maker policy</span></div></div>
+</footer>
+</body>
+</html>

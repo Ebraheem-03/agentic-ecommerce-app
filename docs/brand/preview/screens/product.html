@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hearth — Wood-fired serving bowl</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Outfit:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="screens.css">
+</head>
+<body data-testid="product-page">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand-lockup" href="home.html" aria-label="Hearth home">
+      <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 8 L54 21 C56 22.2,56 25,54 26.2 L34 38 C32.8 38.7,31.2 38.7,30 38 L10 26.2 C8 25,8 22.2,10 21 Z" fill="var(--brand)"/><path d="M32 28 L50 38.5 C52 39.7,52 42.5,50 43.7 L34 53 C32.8 53.7,31.2 53.7,30 53 L14 43.7 C12 42.5,12 39.7,14 38.5 Z" fill="var(--accent)"/></svg>
+      <span class="wordmark">Hearth</span>
+    </a>
+    <nav class="nav" aria-label="Primary"><a href="search.html">Browse</a><a href="search.html">Collections</a><a href="search.html">Makers</a></nav>
+    <div class="header-actions">
+      <a class="header-search" href="search.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Ask Hearth…</a>
+      <a class="cart-link" href="cart.html" aria-label="Cart, 2 items"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 7h13l-1.2 9.5a2 2 0 0 1-2 1.7H9.2a2 2 0 0 1-2-1.7L6 7Z" stroke="currentColor" stroke-width="1.7"/><path d="M9 7a3 3 0 0 1 6 0" stroke="currentColor" stroke-width="1.7"/></svg><span class="cart-badge">2</span></a>
+    </div>
+  </div>
+</header>
+
+<main id="main" class="section-tight">
+  <div class="wrap">
+    <nav class="small muted" aria-label="Breadcrumb" style="margin-bottom:24px;"><a href="search.html">Browse</a> / <a href="search.html">Kitchen &amp; table</a> / <span>Wood-fired serving bowl</span></nav>
+
+    <div class="grid" style="grid-template-columns: 1.1fr 1fr; gap:48px; align-items:start;">
+      <!-- Gallery -->
+      <div class="stack">
+        <div class="card thumb ph ph-moss" data-testid="product-image" role="img" aria-label="Wood-fired stoneware serving bowl, deep moss glaze, photographed from above" style="aspect-ratio:1/1;border-radius:18px;">Wood-fired bowl</div>
+        <div class="grid grid-4" style="gap:12px;">
+          <div class="card thumb ph ph-moss" aria-hidden="true" style="aspect-ratio:1/1;border-radius:12px;"></div>
+          <div class="card thumb ph ph-sage" aria-hidden="true" style="aspect-ratio:1/1;border-radius:12px;"></div>
+          <div class="card thumb ph ph-stone" aria-hidden="true" style="aspect-ratio:1/1;border-radius:12px;"></div>
+          <div class="card thumb ph ph-clay" aria-hidden="true" style="aspect-ratio:1/1;border-radius:12px;"></div>
+        </div>
+      </div>
+
+      <!-- Buy box -->
+      <div class="stack-lg" style="position:sticky;top:96px;">
+        <div class="stack-sm">
+          <span class="maker">Field &amp; Kiln · Bristol, UK</span>
+          <h1 class="h1 serif" data-testid="product-title">Wood-fired serving bowl</h1>
+          <div class="row" style="gap:12px;">
+            <span class="rating" aria-label="Rated 4.8 of 5">★★★★★</span>
+            <span class="small muted">4.8 · 64 reviews</span>
+          </div>
+        </div>
+
+        <div class="row" style="gap:14px;align-items:baseline;">
+          <span class="h2 serif price" data-testid="product-price">$92</span>
+          <span class="badge badge-success"><span class="dot" style="background:var(--success)"></span> In stock · ships in 2–3 days</span>
+        </div>
+
+        <p class="lead" style="font-size:var(--text-body);">Thrown and wood-fired in small batches, so the glaze breaks differently on every piece. Generous enough for a salad to share; food-safe and dishwasher-fine.</p>
+
+        <!-- Variants -->
+        <div class="stack-sm">
+          <span class="caption">Glaze</span>
+          <div class="row" style="gap:8px;">
+            <span class="tag is-selected">Deep moss</span>
+            <span class="tag">Ash grey</span>
+            <span class="tag">Ember</span>
+          </div>
+        </div>
+        <div class="stack-sm">
+          <span class="caption">Size</span>
+          <div class="row" style="gap:8px;">
+            <span class="tag">Medium · 22cm</span>
+            <span class="tag is-selected">Large · 28cm</span>
+          </div>
+        </div>
+
+        <div class="row" style="gap:12px;">
+          <div class="field" style="width:120px;">
+            <label for="qty" class="small">Quantity</label>
+            <select id="qty" class="select" data-testid="product-qty"><option>1</option><option>2</option><option>3</option></select>
+          </div>
+          <div class="field" style="flex:1;justify-content:flex-end;">
+            <button class="btn btn-accent btn-lg btn-block" data-testid="product-add-to-cart">Add to cart · $92</button>
+          </div>
+        </div>
+
+        <!-- Inline confirmation + OOS notice (registered states; shown for contract) -->
+        <div class="badge badge-success" data-testid="product-add-confirmation" role="status" style="display:none;">Added to cart</div>
+        <div class="agent-note refusal" data-testid="product-out-of-stock" style="display:none;">This glaze just sold out. The <b>Ash grey</b> is in stock and ships today.</div>
+
+        <hr class="divider">
+
+        <!-- Trust / policy -->
+        <div class="grid grid-2" style="gap:16px;">
+          <div class="row small" style="gap:10px;"><span class="dot" style="background:var(--brand)"></span> Plastic-free packaging</div>
+          <div class="row small" style="gap:10px;"><span class="dot" style="background:var(--brand)"></span> 30-day returns</div>
+          <div class="row small" style="gap:10px;"><span class="dot" style="background:var(--brand)"></span> Maker keeps 88%</div>
+          <div class="row small" style="gap:10px;"><span class="dot" style="background:var(--brand)"></span> Breakage replaced free</div>
+        </div>
+
+        <!-- Inline "ask about this" agent affordance + honest moment -->
+        <div class="card shadow-soft" data-testid="agent-chat-panel" aria-label="Ask Hearth about this product">
+          <div class="agent-head" style="border-radius:16px 16px 0 0;">
+            <div class="agent-avatar" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 64 64"><path d="M32 12 L50 23 C51.6 23.9,51.6 26.1,50 27 L33 37 C32.4 37.4,31.6 37.4,31 37 L14 27 C12.4 26.1,12.4 23.9,14 23 Z" fill="var(--text)"/><path d="M32 30 L46 38.5 C47.4 39.3,47.4 41.2,46 42 L33 50 C32.4 50.4,31.6 50.4,31 50 L18 42 C16.6 41.2,16.6 39.3,18 38.5 Z" fill="var(--text)" opacity=".5"/></svg></div>
+            <div><div class="agent-name">Ask about this bowl</div><div class="agent-presence"><span class="dot"></span> Answers from the maker’s listing</div></div>
+          </div>
+          <div class="agent-msgs" data-testid="agent-message-list" style="padding:16px;">
+            <div class="msg msg-user" data-testid="agent-message-user">Is it oven-safe?</div>
+            <div class="msg msg-agent" data-testid="agent-message-assistant">
+              The maker lists it as dishwasher- and microwave-safe, but <b>doesn’t state an oven rating</b> — so I won’t guess.
+              <div class="agent-citation" data-testid="agent-citation" style="margin-top:8px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 12h6M9 16h6M7 4h7l4 4v12H7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg> Field &amp; Kiln · care &amp; materials</div>
+            </div>
+          </div>
+          <form class="agent-compose" onsubmit="return false" style="border-radius:0 0 16px 16px;">
+            <textarea class="agent-input" data-testid="agent-chat-input" rows="1" placeholder="Ask about size, care, the maker…" aria-label="Ask about this product"></textarea>
+            <button class="agent-send" data-testid="agent-chat-send" aria-label="Send"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap"><div class="foot-bottom" style="border:none;margin:0;padding:24px 0;"><span>© 2026 Hearth. Made with care.</span><span>Privacy · Terms · Maker policy</span></div></div>
+</footer>
+</body>
+</html>

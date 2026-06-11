@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hearth — Order status</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Outfit:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="screens.css">
+<style>
+  /* Timeline — token-driven */
+  .timeline { display:flex; gap:0; margin:8px 0; }
+  .tl-step { flex:1; text-align:center; position:relative; padding-top:34px; }
+  .tl-step::before { content:""; position:absolute; top:8px; left:0; right:0; height:2px; background:var(--border); }
+  .tl-step:first-child::before { left:50%; }
+  .tl-step:last-child::before { right:50%; }
+  .tl-step .node { position:absolute; top:1px; left:50%; transform:translateX(-50%); width:18px; height:18px; border-radius:999px; background:var(--surface); border:2px solid var(--border); }
+  .tl-step.done::before { background:var(--success); }
+  .tl-step.done .node { background:var(--success); border-color:var(--success); }
+  .tl-step.current .node { background:var(--accent); border-color:var(--accent-strong); box-shadow:0 0 0 4px var(--accent-tint); }
+  .tl-step .label { font-weight:500; font-size:var(--text-small); }
+  .tl-step .when { font-size:var(--text-caption); color:var(--text-muted); }
+</style>
+</head>
+<body data-testid="order-status-page">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand-lockup" href="home.html" aria-label="Hearth home">
+      <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 8 L54 21 C56 22.2,56 25,54 26.2 L34 38 C32.8 38.7,31.2 38.7,30 38 L10 26.2 C8 25,8 22.2,10 21 Z" fill="var(--brand)"/><path d="M32 28 L50 38.5 C52 39.7,52 42.5,50 43.7 L34 53 C32.8 53.7,31.2 53.7,30 53 L14 43.7 C12 42.5,12 39.7,14 38.5 Z" fill="var(--accent)"/></svg>
+      <span class="wordmark">Hearth</span>
+    </a>
+    <nav class="nav" aria-label="Primary"><a href="search.html">Browse</a><a href="order-status.html">Track an order</a></nav>
+    <div class="header-actions"><a class="cart-link" href="cart.html" aria-label="Cart, 2 items"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 7h13l-1.2 9.5a2 2 0 0 1-2 1.7H9.2a2 2 0 0 1-2-1.7L6 7Z" stroke="currentColor" stroke-width="1.7"/><path d="M9 7a3 3 0 0 1 6 0" stroke="currentColor" stroke-width="1.7"/></svg><span class="cart-badge">2</span></a></div>
+  </div>
+</header>
+
+<main id="main" class="section-tight">
+  <div class="wrap" style="max-width:920px;">
+    <!-- Lookup -->
+    <form class="card shadow-soft card-pad row" onsubmit="return false" style="gap:12px;align-items:flex-end;margin-bottom:28px;">
+      <div class="field" style="flex:1;">
+        <label for="oid">Order number</label>
+        <input id="oid" class="input" data-testid="order-status-lookup-input" value="HRT-2381">
+      </div>
+      <button class="btn btn-brand" data-testid="order-status-lookup-submit" type="submit">Track order</button>
+    </form>
+
+    <!-- not-found state (registered; hidden) -->
+    <div class="card shadow-soft card-pad" data-testid="order-status-not-found" style="display:none;margin-bottom:28px;">
+      <p class="muted">I couldn’t find an order under that number. I won’t guess at a status — double-check the number from your confirmation email, or <a href="#">reach a human</a>.</p>
+    </div>
+
+    <div class="between" style="margin-bottom:20px;">
+      <div class="stack-sm"><span class="caption">Order HRT-2381 · placed 6 Jun 2026</span><h1 class="h2 serif">On its way to you</h1></div>
+      <span class="badge badge-accent">Arrives Thu 12 Jun</span>
+    </div>
+
+    <!-- Timeline -->
+    <section class="card shadow-soft card-pad" style="margin-bottom:28px;">
+      <ol class="timeline" data-testid="order-status-timeline" aria-label="Order progress">
+        <li class="tl-step done" data-testid="order-status-step"><span class="node" aria-hidden="true"></span><div class="label">Placed</div><div class="when">6 Jun</div></li>
+        <li class="tl-step done" data-testid="order-status-step"><span class="node" aria-hidden="true"></span><div class="label">Packed</div><div class="when">8 Jun</div></li>
+        <li class="tl-step current" data-testid="order-status-step" aria-current="step"><span class="node" aria-hidden="true"></span><div class="label">Shipped</div><div class="when">9 Jun · DPD</div></li>
+        <li class="tl-step" data-testid="order-status-step"><span class="node" aria-hidden="true"></span><div class="label">Delivered</div><div class="when">Est. 12 Jun</div></li>
+      </ol>
+    </section>
+
+    <div class="grid" style="grid-template-columns:1fr 320px;gap:28px;align-items:start;">
+      <!-- Summary -->
+      <section class="card shadow-soft" data-testid="order-status-summary">
+        <div class="card-pad"><h2 class="h3 serif">In this order</h2></div>
+        <hr class="divider">
+        <div class="card-pad row" style="gap:14px;"><div class="thumb ph ph-moss" aria-hidden="true" style="width:64px;height:64px;aspect-ratio:auto;border-radius:10px;flex:none;"></div><div style="flex:1;"><div class="small" style="font-weight:500;">Wood-fired serving bowl</div><div class="caption" style="text-transform:none;">Field &amp; Kiln · Deep moss</div></div><span class="small">$92</span></div>
+        <hr class="divider">
+        <div class="card-pad row" style="gap:14px;"><div class="thumb ph ph-rust" aria-hidden="true" style="width:64px;height:64px;aspect-ratio:auto;border-radius:10px;flex:none;"></div><div style="flex:1;"><div class="small" style="font-weight:500;">Stoneware mug, set of 2</div><div class="caption" style="text-transform:none;">Ardal Clayworks · Ember</div></div><span class="small">$72</span></div>
+        <hr class="divider">
+        <div class="card-pad between"><span class="h4">Total paid</span><span class="h4 price">$183.12</span></div>
+      </section>
+
+      <!-- Support / agent + return + HITL -->
+      <aside class="stack">
+        <div class="agent-panel" data-testid="agent-chat-panel" aria-label="Hearth support">
+          <div class="agent-head"><div class="agent-avatar" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 64 64"><path d="M32 12 L50 23 C51.6 23.9,51.6 26.1,50 27 L33 37 C32.4 37.4,31.6 37.4,31 37 L14 27 C12.4 26.1,12.4 23.9,14 23 Z" fill="var(--text)"/><path d="M32 30 L46 38.5 C47.4 39.3,47.4 41.2,46 42 L33 50 C32.4 50.4,31.6 50.4,31 50 L18 42 C16.6 41.2,16.6 39.3,18 38.5 Z" fill="var(--text)" opacity=".5"/></svg></div><div><div class="agent-name">Need a hand?</div><div class="agent-presence"><span class="dot"></span> Hearth support</div></div></div>
+          <div class="agent-msgs" data-testid="agent-message-list" style="padding:14px;">
+            <div class="msg msg-agent" data-testid="agent-message-assistant" style="max-width:100%;">Your order shipped on 9 Jun and is tracking on time for Thursday. Want the carrier link, or to start a return?</div>
+          </div>
+          <form class="agent-compose" onsubmit="return false"><textarea class="agent-input" data-testid="agent-chat-input" rows="1" placeholder="Ask about this order…" aria-label="Ask Hearth support"></textarea><button class="agent-send" data-testid="agent-chat-send" aria-label="Send"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></form>
+        </div>
+
+        <button class="btn btn-outline btn-block" data-testid="order-status-return-cta">Start a return</button>
+
+        <!-- Return panel + HITL state (registered; hidden) -->
+        <div class="card shadow-soft card-pad" data-testid="order-status-return-panel" style="display:none;">
+          <p class="small">Which item are you returning?</p>
+        </div>
+        <div class="agent-note refusal" data-testid="order-status-hitl-pending" style="display:none;">
+          This is just outside the 30-day window, so I can’t approve it myself — I’ve passed it to a human who’ll reply within one business day.
+        </div>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap"><div class="foot-bottom" style="border:none;margin:0;padding:24px 0;"><span>© 2026 Hearth. Made with care.</span><span>Privacy · Terms · Maker policy</span></div></div>
+</footer>
+</body>
+</html>
