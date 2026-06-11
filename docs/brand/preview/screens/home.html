@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hearth — Home</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Outfit:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="screens.css">
+</head>
+<body data-testid="home-page">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<!-- ===== Header shell ===== -->
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand-lockup" href="home.html" aria-label="Hearth home">
+      <svg class="mark" viewBox="0 0 64 64" aria-hidden="true">
+        <path d="M32 8 L54 21 C56 22.2,56 25,54 26.2 L34 38 C32.8 38.7,31.2 38.7,30 38 L10 26.2 C8 25,8 22.2,10 21 Z" fill="var(--brand)"/>
+        <path d="M32 28 L50 38.5 C52 39.7,52 42.5,50 43.7 L34 53 C32.8 53.7,31.2 53.7,30 53 L14 43.7 C12 42.5,12 39.7,14 38.5 Z" fill="var(--accent)"/>
+      </svg>
+      <span class="wordmark">Hearth</span>
+    </a>
+    <nav class="nav" data-testid="home-nav" aria-label="Primary">
+      <a href="search.html">Browse</a>
+      <a href="search.html">Collections</a>
+      <a href="search.html">Makers</a>
+      <a href="seller-dashboard.html">Sell on Hearth</a>
+    </nav>
+    <div class="header-actions">
+      <a class="header-search" href="search.html" data-testid="home-search-entry">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Ask Hearth, or search makers &amp; goods…
+      </a>
+      <a class="cart-link" href="cart.html" data-testid="home-cart-link" aria-label="Cart, 2 items">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 7h13l-1.2 9.5a2 2 0 0 1-2 1.7H9.2a2 2 0 0 1-2-1.7L6 7Z" stroke="currentColor" stroke-width="1.7"/><path d="M9 7a3 3 0 0 1 6 0" stroke="currentColor" stroke-width="1.7"/></svg>
+        <span class="cart-badge">2</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <!-- ===== Hero ===== -->
+  <section class="section">
+    <div class="wrap">
+      <div class="grid" style="grid-template-columns: 1.05fr .95fr; align-items: center; gap: 56px;">
+        <div class="stack-lg">
+          <span class="eyebrow">Handmade, shoppable by conversation</span>
+          <h1 class="display">The hearth for<br>well-made things.</h1>
+          <p class="lead" style="max-width: 46ch;">Tell Hearth what you’re furnishing, gifting, or mending. Our concierge knows every maker in the catalogue and recommends with reasons — never hype.</p>
+          <div class="row">
+            <a class="btn btn-accent btn-lg" href="search.html" data-testid="home-hero-cta">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v18M3 12h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              Start a conversation
+            </a>
+            <a class="btn btn-outline btn-lg" href="search.html">Browse the catalogue</a>
+          </div>
+          <div class="row small muted" style="gap:24px;">
+            <span class="row" style="gap:8px;"><span class="dot" style="background:var(--success)"></span> 1,240 independent makers</span>
+            <span>Ships in recycled, plastic-free packaging</span>
+          </div>
+        </div>
+
+        <!-- Agent concierge entry — the signature -->
+        <div class="agent-panel" data-testid="agent-chat-panel" aria-label="Hearth concierge" style="height: 440px;">
+          <div class="agent-head">
+            <div class="agent-avatar" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 64 64"><path d="M32 12 L50 23 C51.6 23.9,51.6 26.1,50 27 L33 37 C32.4 37.4,31.6 37.4,31 37 L14 27 C12.4 26.1,12.4 23.9,14 23 Z" fill="var(--text)"/><path d="M32 30 L46 38.5 C47.4 39.3,47.4 41.2,46 42 L33 50 C32.4 50.4,31.6 50.4,31 50 L18 42 C16.6 41.2,16.6 39.3,18 38.5 Z" fill="var(--text)" opacity=".5"/></svg>
+            </div>
+            <div>
+              <div class="agent-name">Hearth Concierge</div>
+              <div class="agent-presence"><span class="dot"></span> Online · grounded in the live catalogue</div>
+            </div>
+          </div>
+          <div class="agent-msgs" data-testid="agent-message-list">
+            <div class="msg msg-agent" data-testid="agent-message-assistant">
+              <span class="lead-line">Welcome in. What are you putting together?</span><br>
+              I can help with a dinner set, a housewarming gift, or finding the maker behind something you already love.
+            </div>
+            <div class="msg msg-user" data-testid="agent-message-user">A wedding gift for friends who love to cook — around $90.</div>
+            <div class="thinking" data-testid="agent-thinking-indicator" aria-live="polite"><span>Looking through 1,240 makers</span><span class="dots"><i></i><i></i><i></i></span></div>
+          </div>
+          <form class="agent-compose" onsubmit="return false">
+            <textarea class="agent-input" data-testid="agent-chat-input" rows="1" placeholder="Describe what you’re looking for…" aria-label="Message Hearth concierge"></textarea>
+            <button class="agent-send" data-testid="agent-chat-send" aria-label="Send">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Curated collections ===== -->
+  <section class="section-tight">
+    <div class="wrap">
+      <div class="between" style="margin-bottom:28px;">
+        <div class="stack-sm"><span class="eyebrow">Curated this week</span><h2 class="h2">Collections worth slowing down for</h2></div>
+        <a class="btn btn-ghost" href="search.html">See all collections →</a>
+      </div>
+      <div class="grid grid-3">
+        <a class="card shadow-soft" href="search.html" style="text-decoration:none;color:inherit">
+          <div class="thumb ph ph-clay" aria-hidden="true">The Slow Table</div>
+          <div class="card-pad stack-sm"><span class="maker">12 makers</span><h3 class="h4 serif" style="font-size:var(--text-h3)">The Slow Table</h3><p class="small muted">Stoneware, linen, and hand-thrown serving pieces for long dinners.</p></div>
+        </a>
+        <a class="card shadow-soft" href="search.html" style="text-decoration:none;color:inherit">
+          <div class="thumb ph ph-sage" aria-hidden="true">Quiet Corners</div>
+          <div class="card-pad stack-sm"><span class="maker">9 makers</span><h3 class="h4 serif" style="font-size:var(--text-h3)">Quiet Corners</h3><p class="small muted">Textiles and warm light for the parts of home that go unnoticed.</p></div>
+        </a>
+        <a class="card shadow-soft" href="search.html" style="text-decoration:none;color:inherit">
+          <div class="thumb ph ph-ember" aria-hidden="true">Fire &amp; Glaze</div>
+          <div class="card-pad stack-sm"><span class="maker">15 makers</span><h3 class="h4 serif" style="font-size:var(--text-h3)">Fire &amp; Glaze</h3><p class="small muted">Wood-fired ceramics with finishes no two of which repeat.</p></div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Featured rail ===== -->
+  <section class="section-tight" data-testid="home-featured-rail">
+    <div class="wrap">
+      <div class="between" style="margin-bottom:24px;">
+        <h2 class="h3 serif">Picked for the season</h2>
+        <a class="btn btn-ghost" href="search.html">View all →</a>
+      </div>
+      <div class="grid grid-4">
+        <a class="product-card" href="product.html" style="text-decoration:none;color:inherit">
+          <div class="thumb ph ph-rust" aria-hidden="true">Stoneware mug</div>
+          <div class="body stack-sm"><span class="maker">Ardal Clayworks</span><div class="h4">Ember stoneware mug</div><div class="between"><span class="price">$38</span><span class="badge badge-success"><span class="dot" style="background:var(--success)"></span>In stock</span></div></div>
+        </a>
+        <a class="product-card" href="product.html" style="text-decoration:none;color:inherit">
+          <div class="thumb ph ph-sand" aria-hidden="true">Linen runner</div>
+          <div class="body stack-sm"><span class="maker">Møller Textiles</span><div class="h4">Washed linen table runner</div><div class="between"><span class="price">$64</span><span class="badge badge-warning"><span class="dot" style="background:var(--warning)"></span>Low stock</span></div></div>
+        </a>
+        <a class="product-card" href="product.html" style="text-decoration:none;color:inherit">
+          <div class="thumb ph ph-moss" aria-hidden="true">Serving bowl</div>
+          <div class="body stack-sm"><span class="maker">Field &amp; Kiln</span><div class="h4">Wood-fired serving bowl</div><div class="between"><span class="price">$92</span><span class="badge badge-success"><span class="dot" style="background:var(--success)"></span>In stock</span></div></div>
+        </a>
+        <a class="product-card" href="product.html" style="text-decoration:none;color:inherit">
+          <div class="thumb ph ph-stone" aria-hidden="true">Beeswax candle</div>
+          <div class="body stack-sm"><span class="maker">North Light Co.</span><div class="h4">Hand-poured beeswax candle</div><div class="between"><span class="price">$28</span><span class="badge badge-success"><span class="dot" style="background:var(--success)"></span>In stock</span></div></div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Value strip ===== -->
+  <section class="section">
+    <div class="wrap">
+      <div class="panel card-pad grid grid-3" style="gap:40px;">
+        <div class="stack-sm"><h3 class="h4 serif" style="font-size:var(--text-h3)">Recommends with reasons</h3><p class="small muted">Every suggestion cites why it fits — material, maker, size — so you can disagree.</p></div>
+        <div class="stack-sm"><h3 class="h4 serif" style="font-size:var(--text-h3)">Tells you when it can’t</h3><p class="small muted">If something’s out of stock or off-policy, Hearth says so plainly and points to the source.</p></div>
+        <div class="stack-sm"><h3 class="h4 serif" style="font-size:var(--text-h3)">Makers paid fairly</h3><p class="small muted">A flat, transparent fee. The price you pay is mostly the maker’s.</p></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ===== Footer shell ===== -->
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="stack">
+        <div class="brand-lockup">
+          <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 8 L54 21 C56 22.2,56 25,54 26.2 L34 38 C32.8 38.7,31.2 38.7,30 38 L10 26.2 C8 25,8 22.2,10 21 Z" fill="var(--brand)"/><path d="M32 28 L50 38.5 C52 39.7,52 42.5,50 43.7 L34 53 C32.8 53.7,31.2 53.7,30 53 L14 43.7 C12 42.5,12 39.7,14 38.5 Z" fill="var(--accent)"/></svg>
+          <span class="wordmark">Hearth</span>
+        </div>
+        <p class="small muted" style="max-width:34ch;">A marketplace for well-made things, shoppable by conversation.</p>
+      </div>
+      <div class="foot-col"><h5>Shop</h5><a href="search.html">All goods</a><a href="search.html">Collections</a><a href="search.html">Makers</a><a href="search.html">Gift guide</a></div>
+      <div class="foot-col"><h5>Sell</h5><a href="seller-dashboard.html">Open a shop</a><a href="seller-dashboard.html">Seller dashboard</a><a href="#">Maker handbook</a></div>
+      <div class="foot-col"><h5>Hearth</h5><a href="order-status.html">Track an order</a><a href="#">Returns &amp; policy</a><a href="#">About</a></div>
+    </div>
+    <div class="foot-bottom"><span>© 2026 Hearth. Made with care.</span><span>Privacy · Terms · Maker policy</span></div>
+  </div>
+</footer>
+</body>
+</html>
