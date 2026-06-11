@@ -162,10 +162,10 @@ export default function TokensPage(): JSX.Element {
                 Primary text and muted text on app background.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <span className="rounded-md bg-brand-tint px-2.5 py-1 text-small text-text">
+                <span className="rounded-md bg-brand-tint px-2.5 py-1 text-small text-n-900">
                   brand-tint badge
                 </span>
-                <span className="rounded-md bg-accent-tint px-2.5 py-1 text-small text-text">
+                <span className="rounded-md bg-accent-tint px-2.5 py-1 text-small text-n-900">
                   accent-tint badge
                 </span>
               </div>
