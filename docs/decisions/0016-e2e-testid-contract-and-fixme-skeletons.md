@@ -1,4 +1,4 @@
-# ADR-0015: E2E test-id contract + fixme-only journey skeletons
+# ADR-0016: E2E test-id contract + fixme-only journey skeletons
 
 - **Status:** Accepted
 - **Date:** 2026-06-11
