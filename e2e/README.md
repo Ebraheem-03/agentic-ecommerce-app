@@ -42,11 +42,24 @@ zero-setup fallback so the smoke always resolves the contract.
 e2e/
 ├── playwright.config.ts   # config + env loading; exports WEB/API base URLs
 ├── tests/
-│   └── smoke.spec.ts       # @smoke (no server) + fixme stubs for US-QA-D03
+│   ├── _selectors.ts       # typed data-testid registry (mirrors docs/qa/test-ids.md)
+│   ├── smoke.spec.ts       # @smoke (no server) — keeps CI green with no app up
+│   └── J-*.spec.ts         # one spec per journey ID (US-QA-D03 skeletons)
 ├── .env.example            # env contract (committed); copy to .env locally
 ├── package.json            # the `e2e` command lives here
 └── tsconfig.json
 ```
 
-Real navigation specs land in **US-QA-D03**; that story also adds a `webServer`
-block to the config to spin up web + api for those specs.
+## Journey specs (US-QA-D03)
+
+Each `J-*` journey in [`docs/qa/qa-matrix.md`](../docs/qa/qa-matrix.md) §2 maps
+**1:1** to a spec file named by its ID (`J-BUY-01.spec.ts`, `J-SEL-04.spec.ts`, …).
+Today they are **skeletons**: every test is `test.fixme(...)`, so they are
+discovered and type-checked but **never executed** — `npm run e2e:smoke` and the
+server-free CI job stay green. Each test references stable selectors from
+`tests/_selectors.ts` (the typed mirror of `docs/qa/test-ids.md`) and the scenario
+steps from the matrix.
+
+To activate a journey once web + api scaffold exists: add a `webServer` block to
+`playwright.config.ts`, then flip that spec's `test.fixme` → `test`. Until then,
+selectors are a **contract** Iris/Nova build against; the specs do not run.
