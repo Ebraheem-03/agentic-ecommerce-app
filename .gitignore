@@ -5,6 +5,9 @@
 .claude/agent-memory/
 **/.claude/agent-memory/
 **/.claude/settings.local.json
+# Installed skills + transient agent worktrees are local tooling, not project code
+.claude/skills/
+.claude/worktrees/
 
 # OS / editor noise
 .DS_Store
