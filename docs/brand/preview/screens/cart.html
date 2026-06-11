@@ -41,9 +41,13 @@
             <div class="h4" data-testid="cart-line-title">Wood-fired serving bowl</div>
             <p class="small muted">Glaze: Deep moss · Size: Large 28cm</p>
             <div class="row" style="gap:16px;margin-top:4px;">
-              <div class="field" style="width:96px;">
-                <label for="q1" class="caption">Qty</label>
-                <select id="q1" class="select" data-testid="cart-line-qty"><option>1</option><option>2</option></select>
+              <div class="field" style="width:auto;">
+                <label id="q1-label" class="caption">Qty</label>
+                <div class="qty is-sm" role="group" aria-labelledby="q1-label">
+                  <button type="button" class="qty-btn" aria-label="Decrease quantity">&minus;</button>
+                  <input id="q1" class="qty-val" type="number" min="1" value="1" aria-label="Quantity" data-testid="cart-line-qty">
+                  <button type="button" class="qty-btn" aria-label="Increase quantity">+</button>
+                </div>
               </div>
               <button class="btn btn-ghost btn-sm" data-testid="cart-line-remove" style="color:var(--text-muted);align-self:flex-end;">Remove</button>
             </div>
@@ -59,9 +63,13 @@
             <div class="h4" data-testid="cart-line-title">Stoneware mug, set of 2</div>
             <p class="small muted">Glaze: Ember</p>
             <div class="row" style="gap:16px;margin-top:4px;">
-              <div class="field" style="width:96px;">
-                <label for="q2" class="caption">Qty</label>
-                <select id="q2" class="select" data-testid="cart-line-qty"><option>1</option><option>2</option></select>
+              <div class="field" style="width:auto;">
+                <label id="q2-label" class="caption">Qty</label>
+                <div class="qty is-sm" role="group" aria-labelledby="q2-label">
+                  <button type="button" class="qty-btn" aria-label="Decrease quantity">&minus;</button>
+                  <input id="q2" class="qty-val" type="number" min="1" value="1" aria-label="Quantity" data-testid="cart-line-qty">
+                  <button type="button" class="qty-btn" aria-label="Increase quantity">+</button>
+                </div>
               </div>
               <button class="btn btn-ghost btn-sm" data-testid="cart-line-remove" style="color:var(--text-muted);align-self:flex-end;">Remove</button>
             </div>
