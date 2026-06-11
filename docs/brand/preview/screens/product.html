@@ -79,9 +79,13 @@
         </div>
 
         <div class="row" style="gap:12px;">
-          <div class="field" style="width:120px;">
-            <label for="qty" class="small">Quantity</label>
-            <select id="qty" class="select" data-testid="product-qty"><option>1</option><option>2</option><option>3</option></select>
+          <div class="field" style="width:auto;">
+            <label id="qty-label" class="small">Quantity</label>
+            <div class="qty" role="group" aria-labelledby="qty-label">
+              <button type="button" class="qty-btn" aria-label="Decrease quantity">&minus;</button>
+              <input id="qty" class="qty-val" type="number" min="1" value="1" aria-label="Quantity" data-testid="product-qty">
+              <button type="button" class="qty-btn" aria-label="Increase quantity">+</button>
+            </div>
           </div>
           <div class="field" style="flex:1;justify-content:flex-end;">
             <button class="btn btn-accent btn-lg btn-block" data-testid="product-add-to-cart">Add to cart · $92</button>
