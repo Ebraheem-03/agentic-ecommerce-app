@@ -1,6 +1,7 @@
 __pycache__
 *.py[cod]
 .venv
+.venv-mig
 venv
 .pytest_cache
 .mypy_cache
