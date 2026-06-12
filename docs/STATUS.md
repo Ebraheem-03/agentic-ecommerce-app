@@ -3,17 +3,17 @@
 > Atlas updates this at the start and end of every session. Keep it short.
 
 ## ▶ Next session — START HERE
-You are **Atlas**, the orchestrator (full brief: `.claude/agents/atlas.md`). It's **Week 1 · Day 4 (2026-06-12) — Data model design**.
-1. Read **only** this file + the **2026-06-12** block of `docs/plan/week-1.md`. Don't re-read earlier days or the whole repo.
-2. **New working branch: `integration/data`** (off `integration/design`). Features on `feature/db-schema-*` → `integration/data`.
-3. Delegate: **US-E3-01 → Sable** (ERD: users, products, variants, inventory, carts, orders, order_items, returns, policies, embeddings) `[REVIEW]`; **US-E3-02 → Sable** (Postgres schema + Alembic migrations + pgvector) `[AFK]`; **US-QA-D04 → Juno/Sable** (migrate fresh DB, rollback check, seed reset contract) `[AFK]`.
-4. Carry-forward from Day 3: token layer is live (`web/src/app/globals.css`, Tailwind v4, ADR-0015); the `data-testid` registry (`docs/qa/test-ids.md` + `e2e/tests/_selectors.ts`) and 17 `J-*` fixme specs are the UI contract; 7 hi-fi mockups in `docs/brand/preview/screens/` are Iris's build reference (token-truthful, carry the testids).
-5. **Rendering artifacts:** no system SVG rasterizer — render via installed **Playwright/Chromium** (`e2e/`); headed = `chromium.launch({headless:false})`. **Static mocks open via `file://…/screens/<x>.html`; the Next app needs `NODE_OPTIONS="--dns-result-order=ipv4first --no-network-family-autoselection"` for `next/font` fetch in this sandbox** (ADR-0015). Don't `pkill -f <script>.js` from a shell whose own argv contains that name.
-6. **Git hygiene:** `git add -A` will sweep `.claude/skills/` + `.claude/worktrees/` as embedded repos — they're now gitignored, but stage explicit paths. Memory: keep CI green **by code** (GitGuardian scans full history); push branches + open real PRs.
+You are **Atlas**, the orchestrator (full brief: `.claude/agents/atlas.md`). It's **Week 1 · Day 5 (2026-06-13) — Seed, data-access & RAGAS data baseline**.
+1. Read **only** this file + the **2026-06-13** block of `docs/plan/week-1.md`. Don't re-read earlier days or the whole repo.
+2. **Stay on branch `integration/data`** (Day-4 schema/migrations live here). Features on `feature/data-access-*` → `integration/data`.
+3. Delegate: **US-E3-03 → Sable** (seed data: catalog, users, policies — must satisfy the migration `db_reset.sh` seed-hook + feed pgvector embeddings) `[AFK]`; **US-E3-04 → Sable** (SQLAlchemy models / data-access layer mapping the 21-table schema; unit tests) `[AFK]`; **US-QA-D05 → Juno/Echo/Sable** (golden eval dataset v0 — 25 buyer/support Qs w/ expected answer + source docs + tags, for catalog/policies RAGAS) `[AFK]`.
+4. Carry-forward from Day 4: schema is live as 3 Alembic migrations in `api/` (21 tables, 14 enums, pgvector HNSW; ADR-0018). Contract: `api/tests/db/` + guarded `api/scripts/db_reset.sh` (has a marked **seed hook** US-E3-03 plugs into; ADR-0019). **`EMBED_DIM=768` is a placeholder — Echo owns the final embedding model/dim**; US-E3-03 embeddings + US-QA-D05 eval set must not hardcode assumptions that break if it changes. `docs/data/erd.md` is the APPROVED model of record.
+5. **DB ops in this sandbox:** Postgres via `docker compose` (`pgvector/pgvector:pg16`); `DATABASE_URL`/`TEST_DATABASE_URL` env-driven (`.env.example`, no creds committed). Migrate with `alembic upgrade head` from `api/`. UUIDs come from in-DB `uuid_generate_v7()`. Don't hardcode creds (GitGuardian scans full history).
+6. **Git hygiene:** `git add -A` sweeps `.claude/skills/` + `.claude/worktrees/` (gitignored, but stage explicit paths). Integration branches are **not pushed** — held for the **Day-7 (2026-06-15) W1 integration PR** (`foundations|design|data` → `dev`). Keep CI green **by code**.
 
-**Phase:** Week 1 · Day 3 (2026-06-11) — ✅ COMPLETE. Day 4 not started.
-**Current branch:** `integration/design` (push done; PR to `dev` held for Day-7 W1 integration review)
-**Last updated:** 2026-06-11 (end of Day 3)
+**Phase:** Week 1 · Day 4 (2026-06-12) — ✅ COMPLETE. Day 5 not started.
+**Current branch:** `integration/data` (Day-4 schema + migration contract committed; not pushed — held for Day-7 W1 integration review)
+**Last updated:** 2026-06-12 (end of Day 4)
 
 ## ✅ Done — Day 4 (Data model — ERD approved + schema/migrations)
 - **US-E3-01** ERD `[REVIEW ✓]` — human-approved with rulings (added `reviews` + minimal `payments`; kept sessions/conversations/messages/agent_actions; single multi-store order with per-item snapshot; `EMBED_DIM`-driven vector dim). `docs/data/erd.md` flipped to APPROVED; §6/§7 resolved inline.
@@ -50,4 +50,6 @@ You are **Atlas**, the orchestrator (full brief: `.claude/agents/atlas.md`). It'
 - _(ERD [REVIEW] resolved Day 4 — approved with rulings.)_
 
 ## ⏭️ Next up
-- **Day 4 — Data model:** ERD (users, products, variants, inventory, carts, orders, order_items, returns, policies, embeddings) → Postgres schema + Alembic migrations + pgvector; QA migration/rollback/seed-reset contract. New branch `integration/data`.
+- **Day 5 (2026-06-13) — Seed, data-access & RAGAS baseline:** seed catalog/users/policies (US-E3-03) + SQLAlchemy models / data-access layer (US-E3-04) + golden eval dataset v0, 25 buyer/support Qs (US-QA-D05). Branch `feature/data-access-*` → `integration/data`.
+- **Day 6 (2026-06-14):** API contract inventory `[REVIEW]` (US-E4-00) + E2E fixture plan (US-QA-D06) → `integration/backend`.
+- **Day 7 (2026-06-15):** W1 integration dry run + merge `integration/foundations|design|data` → `dev` `[REVIEW]` (US-QA-D07).
