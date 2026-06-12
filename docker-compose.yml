@@ -34,7 +34,11 @@ services:
     environment:
       # Built from the POSTGRES_* values above so no literal credentials live in
       # the repo. To target an external DB, override the POSTGRES_* vars in .env.
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-CHANGE_ME}@db:5432/${POSTGRES_DB:-agentic_ecommerce}
+      # The +psycopg driver suffix is what SQLAlchemy/Alembic use; the plain
+      # libpq form (psql, etc.) ignores it.
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-CHANGE_ME}@db:5432/${POSTGRES_DB:-agentic_ecommerce}
+      # pgvector embedding dimension for migrations (see .env.example / ADR-0018).
+      EMBED_DIM: ${EMBED_DIM:-768}
       PORT: 8000
     ports:
       - "${API_PORT:-8000}:8000"

@@ -15,6 +15,11 @@ You are **Atlas**, the orchestrator (full brief: `.claude/agents/atlas.md`). It'
 **Current branch:** `integration/design` (push done; PR to `dev` held for Day-7 W1 integration review)
 **Last updated:** 2026-06-11 (end of Day 3)
 
+## ✅ Done — Day 4 (Data model — ERD approved + schema/migrations)
+- **US-E3-01** ERD `[REVIEW ✓]` — human-approved with rulings (added `reviews` + minimal `payments`; kept sessions/conversations/messages/agent_actions; single multi-store order with per-item snapshot; `EMBED_DIM`-driven vector dim). `docs/data/erd.md` flipped to APPROVED; §6/§7 resolved inline.
+- **US-E3-02** Postgres schema + Alembic + pgvector `[AFK]` — Alembic initialized in `api/` (env-driven `DATABASE_URL`, no creds committed). 3 migrations: 0001 pgvector ext + 14 native enums; 0002 core schema (20 tables, FKs, CHECKs, partial-unique one-open-cart, UNIQUEs on email-live/slug/sku/order_number/inventory.variant_id, UUIDv7 fn+defaults); 0003 embeddings `vector(EMBED_DIM)` + HNSW cosine. **Proven on a fresh DB: `upgrade head` → `downgrade base` → `upgrade head` all clean** (21 tables/14 enums create+drop; uuidv7 nibble=7; dup-open-cart + review-rating CHECK enforced). ruff + mypy(strict) green. ADR-0018. Committed `feature/db-schema-migrations` → FF `integration/data`.
+- **Echo coordination:** `EMBED_DIM` defaults to **768** (Gemini text-embedding-004) so migrations apply today; Echo confirms the final embedding model → set `EMBED_DIM` + re-run the embeddings migration (one step). Not a blocker.
+
 ## ✅ Done — Day 3 (Design system & key screens — all 3 stories integrated)
 - **US-E2-04** Design tokens → code `[REVIEW ✓]` — **Tailwind v4** (CSS-first, no config), every `palette-and-type.md` token as CSS vars on `:root`+`[data-theme=dark]`, `@theme inline` mapping; Fraunces/Outfit via `next/font`; `Button` (ember+ink primary / clay+white brand), `HearthMark` duotone, `/tokens` specimen + theme toggle. Human approved after a dark-mode tint-badge contrast fix (`text-n-900`). ADR-0015. Merged `915ac62`.
 - **US-E2-05** Hi-fi screens `[REVIEW ✓]` — 7 token-truthful static HTML screens (home, search, product, cart, checkout, order-status, seller-dashboard) + index board, in `docs/brand/preview/screens/`. Carry the `data-testid` registry → double as Iris's build contract. Agent voice (Ember) is the signature surface; grounded recs + honest refusals + seller merch nudge. Human approved w/ tweaks: **qty steppers** (not dropdowns) + richer photo placeholders. ADR-0017. Merged.
@@ -40,8 +45,8 @@ You are **Atlas**, the orchestrator (full brief: `.claude/agents/atlas.md`). It'
 - _nothing_
 
 ## 🙋 Needs your decision
-- **Day 4 ([REVIEW] x1):** approve the ERD (US-E3-01) before migrations are written.
 - **Week 4 (deploy):** free-tier keys — Vercel, Render/Fly, Supabase/Neon, Groq/Gemini.
+- _(ERD [REVIEW] resolved Day 4 — approved with rulings.)_
 
 ## ⏭️ Next up
 - **Day 4 — Data model:** ERD (users, products, variants, inventory, carts, orders, order_items, returns, policies, embeddings) → Postgres schema + Alembic migrations + pgvector; QA migration/rollback/seed-reset contract. New branch `integration/data`.

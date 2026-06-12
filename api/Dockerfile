@@ -26,6 +26,10 @@ RUN pip install --no-cache-dir --no-index --find-links=/wheels -r requirements.t
 # Run as an unprivileged user.
 RUN useradd --create-home --uid 1001 appuser
 COPY --chown=appuser:appuser app ./app
+# Alembic config + migrations ship in the image so `alembic upgrade head` can run
+# as a deploy/release step against the target DB (URL from DATABASE_URL env).
+COPY --chown=appuser:appuser alembic.ini ./alembic.ini
+COPY --chown=appuser:appuser alembic ./alembic
 USER appuser
 
 EXPOSE 8000

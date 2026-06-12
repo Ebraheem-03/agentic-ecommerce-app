@@ -7,6 +7,11 @@ dependencies = [
     "fastapi>=0.111,<0.112",
     "uvicorn[standard]>=0.30,<0.31",
     "pydantic>=2.7,<3",
+    "pydantic-settings>=2.2,<3",
+    "sqlalchemy>=2.0,<2.1",
+    "alembic>=1.13,<2",
+    "psycopg[binary]>=3.1,<4",
+    "pgvector>=0.3,<0.4",
 ]
 
 [project.optional-dependencies]
@@ -29,6 +34,8 @@ python_version = "3.12"
 strict = true
 warn_unused_ignores = true
 warn_redundant_casts = true
+# Alembic generates env.py + revision scripts; they don't benefit from strict typing.
+exclude = ["alembic/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
