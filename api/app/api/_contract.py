@@ -13,9 +13,10 @@ from __future__ import annotations
 
 from typing import Any, NoReturn
 
-from fastapi import HTTPException, status
+from fastapi import status
 
-from app.schemas.envelope import ErrorResponse
+from app.core.errors import APIError
+from app.schemas.envelope import ErrorCode, ErrorResponse
 
 # Reusable OpenAPI ``responses`` block: documents the single error envelope.
 ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
@@ -25,8 +26,13 @@ ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
 
 
 def stub() -> NoReturn:
-    """Contract placeholder — no implementation yet (US-E4-00)."""
-    raise HTTPException(
+    """Contract placeholder — no implementation yet (US-E4-00).
+
+    Raises the canonical envelope via ``APIError`` so a stub call returns
+    ``{"error": {"code": "not_implemented", ...}}`` rather than FastAPI's default.
+    """
+    raise APIError(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="not_implemented: contract draft (US-E4-00); handler lands in Week-2.",
+        code=ErrorCode.not_implemented,
+        message="We haven't built this one yet — it lands in Week 2.",
     )
