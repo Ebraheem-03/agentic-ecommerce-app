@@ -85,10 +85,15 @@ echo ">> Applying Alembic migrations to head..."
 ( cd "$API_ROOT" && DATABASE_URL="$DATABASE_URL" alembic upgrade head )
 
 # --- SEED RESET CONTRACT HOOK (US-E3-03) ------------------------------------
-# Tomorrow's seed story plugs in here, e.g.:
-#   ( cd "$API_ROOT" && DATABASE_URL="$DATABASE_URL" python -m app.db.seed )
-# Keeping reset and seed separate means `db_reset.sh` stays a pure, idempotent
-# schema reset; seeding is opt-in.
+# Reseed unless SEED=0 is passed. The seed is itself idempotent (upserts on natural
+# keys), so running it after a fresh migrate is safe and repeatable. Keeping it
+# guarded by SEED keeps `db_reset.sh` usable as a pure schema reset when wanted.
+if [[ "${SEED:-1}" -ne 0 ]]; then
+  echo ">> Seeding (python -m app.db.seed)..."
+  ( cd "$API_ROOT" && DATABASE_URL="$DATABASE_URL" python -m app.db.seed )
+else
+  echo ">> Skipping seed (SEED=0)."
+fi
 # ----------------------------------------------------------------------------
 
 echo ">> Done. '$DB_NAME' is clean and migrated to head."
