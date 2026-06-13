@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Hearth">
+  <!-- Concept 1 "Quill": favicon = a single custom lowercase 'h' whose right
+       terminal lifts into a tapered ember-rise. The one warm detail is the lift. -->
+  <!-- left stem -->
+  <rect x="13" y="10" width="7.5" height="44" rx="3.75" fill="currentColor"/>
+  <!-- shoulder + right stem of the h, drawn as one continuous stroke that
+       tapers up at the end (the warm 'lift') -->
+  <path d="M20.5 33
+           C20.5 26, 26 23.5, 32.5 23.5
+           C40 23.5, 43.5 28, 43.5 35
+           L43.5 51
+           C43.5 53.2, 41.7 55, 39.5 55
+           C37.3 55, 35.5 53.2, 35.5 51
+           L35.5 36
+           C35.5 33, 34 31, 31.5 31
+           C28 31, 20.5 31.5, 20.5 38 Z"
+        fill="currentColor"/>
+  <!-- tapered ember-rise: the lift off the right terminal -->
+  <path d="M43.5 35
+           C46.5 30, 50 26.5, 50.5 20.5
+           C48 24.5, 45 27, 43.5 30 Z"
+        fill="currentColor"/>
+</svg>

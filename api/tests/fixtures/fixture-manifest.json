@@ -1,0 +1,138 @@
+{
+  "_about": "Canonical Hearth E2E fixtures (US-QA-D06). One source for API, browser, and agent test layers. Generated from api/tests/fixtures/handles.py \u2014 do not hand-edit; run `python -m tests.fixtures.manifest`.",
+  "payment_test_mode": {
+    "capture_outcome": "captured",
+    "decline_outcome": "failed",
+    "declined_error_code": "payment_declined",
+    "declined_http_status": 402
+  },
+  "personas": {
+    "admin": {
+      "display_name": "Hearth Admin",
+      "email": "admin@hearth.test",
+      "password": "CHANGE_ME_test_pw",
+      "role": "admin"
+    },
+    "buyer_primary": {
+      "display_name": "Ada Whitfield",
+      "email": "ada@buyers.hearth.test",
+      "password": "CHANGE_ME_test_pw",
+      "role": "buyer"
+    },
+    "buyer_secondary": {
+      "display_name": "Ben Okafor",
+      "email": "ben@buyers.hearth.test",
+      "password": "CHANGE_ME_test_pw",
+      "role": "buyer"
+    },
+    "seller_ceramics": {
+      "display_name": "Mara S\u00f3lveig",
+      "email": "mara@makers.hearth.test",
+      "password": "CHANGE_ME_test_pw",
+      "role": "seller"
+    },
+    "seller_leather": {
+      "display_name": "Tom\u00e1s Herrera",
+      "email": "tomas@makers.hearth.test",
+      "password": "CHANGE_ME_test_pw",
+      "role": "seller"
+    },
+    "support": {
+      "display_name": "Hearth Support",
+      "email": "support@hearth.test",
+      "password": "CHANGE_ME_test_pw",
+      "role": "support"
+    }
+  },
+  "policies": {
+    "care_ceramics": {
+      "key": "care@solveig-ceramics",
+      "kind": "care",
+      "store_slug": "solveig-ceramics",
+      "title": "Caring for Your Stoneware"
+    },
+    "payments_platform": {
+      "key": "payments@platform",
+      "kind": "payments",
+      "store_slug": null,
+      "title": "Payments & Pricing"
+    },
+    "returns_leather": {
+      "key": "returns@herrera-leather",
+      "kind": "returns",
+      "store_slug": "herrera-leather",
+      "title": "Herrera Leather \u2014 Made-to-Order Returns"
+    },
+    "returns_platform": {
+      "key": "returns@platform",
+      "kind": "returns",
+      "store_slug": null,
+      "title": "Hearth Returns Policy"
+    },
+    "shipping_platform": {
+      "key": "shipping@platform",
+      "kind": "shipping",
+      "store_slug": null,
+      "title": "Hearth Shipping & Delivery"
+    }
+  },
+  "products": {
+    "belt": {
+      "slug": "field-belt",
+      "store_slug": "herrera-leather",
+      "title": "Field Belt"
+    },
+    "card_wallet": {
+      "slug": "carryall-card-wallet",
+      "store_slug": "herrera-leather",
+      "title": "Carryall Card Wallet"
+    },
+    "mug": {
+      "slug": "tide-pour-over-mug",
+      "store_slug": "solveig-ceramics",
+      "title": "Tide Pour-Over Mug"
+    }
+  },
+  "return_reasons": [
+    "damaged",
+    "not_as_described",
+    "wrong_item",
+    "no_longer_needed",
+    "arrived_late",
+    "other"
+  ],
+  "variants": {
+    "mug_in_stock": {
+      "in_stock": true,
+      "price_minor": 3400,
+      "product_slug": "tide-pour-over-mug",
+      "qty_on_hand": 24,
+      "restock_eta_days": null,
+      "sku": "SOL-MUG-SAGE"
+    },
+    "mug_low_stock": {
+      "in_stock": true,
+      "price_minor": 3400,
+      "product_slug": "tide-pour-over-mug",
+      "qty_on_hand": 3,
+      "restock_eta_days": 10,
+      "sku": "SOL-MUG-ASH"
+    },
+    "wallet_in_stock": {
+      "in_stock": true,
+      "price_minor": 5200,
+      "product_slug": "carryall-card-wallet",
+      "qty_on_hand": 18,
+      "restock_eta_days": null,
+      "sku": "HER-WAL-TAN"
+    },
+    "wallet_oos": {
+      "in_stock": false,
+      "price_minor": 5200,
+      "product_slug": "carryall-card-wallet",
+      "qty_on_hand": 0,
+      "restock_eta_days": 21,
+      "sku": "HER-WAL-ESP"
+    }
+  }
+}

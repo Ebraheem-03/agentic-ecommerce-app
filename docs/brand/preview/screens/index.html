@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hearth — Hi-fi screens (US-E2-05) review board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Outfit:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="screens.css">
+<style>
+  .board { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
+  .board a { text-decoration:none; color:inherit; }
+  .board .product-card .thumb { aspect-ratio:16/10; }
+  .legend { display:flex; gap:8px; flex-wrap:wrap; }
+  .swatch { display:flex; align-items:center; gap:8px; font-size:var(--text-caption); border:1px solid var(--border); border-radius:999px; padding:5px 10px 5px 6px; background:var(--surface); }
+  .swatch i { width:18px; height:18px; border-radius:999px; display:inline-block; }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <div class="brand-lockup">
+      <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 8 L54 21 C56 22.2,56 25,54 26.2 L34 38 C32.8 38.7,31.2 38.7,30 38 L10 26.2 C8 25,8 22.2,10 21 Z" fill="var(--brand)"/><path d="M32 28 L50 38.5 C52 39.7,52 42.5,50 43.7 L34 53 C32.8 53.7,31.2 53.7,30 53 L14 43.7 C12 42.5,12 39.7,14 38.5 Z" fill="var(--accent)"/></svg>
+      <span class="wordmark">Hearth</span>
+    </div>
+    <span class="badge badge-accent" style="margin-left:8px;">US-E2-05 · Hi-fi review board</span>
+  </div>
+</header>
+
+<main class="section">
+  <div class="wrap">
+    <div class="stack-lg" style="margin-bottom:36px;">
+      <span class="eyebrow">Day 3 · Nova → review</span>
+      <h1 class="display">Hi-fi screens for the 7 key surfaces</h1>
+      <p class="lead" style="max-width:60ch;">Static HTML+CSS mockups consuming the live Hearth design tokens (Clay + Ember, Fraunces + Outfit). Every key element carries its registered <code>data-testid</code>, so these double as Iris’s build contract. Click any card to open the full screen at ~1280px.</p>
+      <div class="legend">
+        <span class="swatch"><i style="background:var(--brand)"></i> Clay <span class="muted">--brand</span></span>
+        <span class="swatch"><i style="background:var(--accent)"></i> Ember <span class="muted">--accent (agent voice)</span></span>
+        <span class="swatch"><i style="background:var(--accent-tint)"></i> Chat surface <span class="muted">--accent-tint</span></span>
+        <span class="swatch" style="font-family:var(--font-display);">Fraunces — display</span>
+        <span class="swatch">Outfit — UI</span>
+      </div>
+    </div>
+
+    <div class="board">
+      <a class="product-card" href="home.html"><div class="thumb ph ph-clay" aria-hidden="true">01</div><div class="body stack-sm"><span class="maker">Surface 01</span><div class="h4">Home</div><p class="small muted">Artisan landing + concierge entry (the signature).</p></div></a>
+      <a class="product-card" href="search.html"><div class="thumb ph ph-ember" aria-hidden="true">02</div><div class="body stack-sm"><span class="maker">Surface 02</span><div class="h4">Search</div><p class="small muted">Conversational results: chat panel + grounded picks beside the grid.</p></div></a>
+      <a class="product-card" href="product.html"><div class="thumb ph ph-moss" aria-hidden="true">03</div><div class="body stack-sm"><span class="maker">Surface 03</span><div class="h4">Product</div><p class="small muted">Gallery, variants, add-to-cart, inline “ask about this” + honest moment.</p></div></a>
+      <a class="product-card" href="cart.html"><div class="thumb ph ph-sand" aria-hidden="true">04</div><div class="body stack-sm"><span class="maker">Surface 04</span><div class="h4">Cart</div><p class="small muted">Line items, totals, proceed to checkout.</p></div></a>
+      <a class="product-card" href="checkout.html"><div class="thumb ph ph-stone" aria-hidden="true">05</div><div class="body stack-sm"><span class="maker">Surface 05</span><div class="h4">Checkout</div><p class="small muted">Labelled address + payment + review, place order.</p></div></a>
+      <a class="product-card" href="order-status.html"><div class="thumb ph ph-sage" aria-hidden="true">06</div><div class="body stack-sm"><span class="maker">Surface 06</span><div class="h4">Order status</div><p class="small muted">Placed → packed → shipped → delivered timeline + support agent.</p></div></a>
+      <a class="product-card" href="seller-dashboard.html"><div class="thumb ph ph-rust" aria-hidden="true">07</div><div class="body stack-sm"><span class="maker">Surface 07</span><div class="h4">Seller dashboard</div><p class="small muted">KPIs, listings, grounded merchandising nudge with reason + accept.</p></div></a>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap"><div class="foot-bottom" style="border:none;margin:0;padding:24px 0;"><span>© 2026 Hearth · hi-fi mockups, light theme</span><span>Tokens: web/src/app/globals.css · IDs: docs/qa/test-ids.md</span></div></div>
+</footer>
+</body>
+</html>

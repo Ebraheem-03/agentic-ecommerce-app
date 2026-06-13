@@ -1,0 +1,14 @@
+# Runtime dependencies for the FastAPI backend.
+# Pinned loosely for the scaffold; full lock comes with the real app.
+fastapi>=0.111,<0.112
+uvicorn[standard]>=0.30,<0.31
+pydantic>=2.7,<3
+pydantic-settings>=2.2,<3
+sqlalchemy>=2.0,<2.1
+alembic>=1.13,<2
+psycopg[binary]>=3.1,<4
+pgvector>=0.3,<0.4
+# Scalar API reference (house docs standard, not Swagger UI) — served at /docs.
+scalar-fastapi>=1.8,<2
+# EmailStr validation for auth request models.
+email-validator>=2,<3

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hearth — Cart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Outfit:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="screens.css">
+</head>
+<body data-testid="cart-page">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand-lockup" href="home.html" aria-label="Hearth home">
+      <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 8 L54 21 C56 22.2,56 25,54 26.2 L34 38 C32.8 38.7,31.2 38.7,30 38 L10 26.2 C8 25,8 22.2,10 21 Z" fill="var(--brand)"/><path d="M32 28 L50 38.5 C52 39.7,52 42.5,50 43.7 L34 53 C32.8 53.7,31.2 53.7,30 53 L14 43.7 C12 42.5,12 39.7,14 38.5 Z" fill="var(--accent)"/></svg>
+      <span class="wordmark">Hearth</span>
+    </a>
+    <nav class="nav" aria-label="Primary"><a href="search.html">Browse</a><a href="search.html">Collections</a><a href="search.html">Makers</a></nav>
+    <div class="header-actions">
+      <a class="cart-link" href="cart.html" aria-label="Cart, 2 items"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 7h13l-1.2 9.5a2 2 0 0 1-2 1.7H9.2a2 2 0 0 1-2-1.7L6 7Z" stroke="currentColor" stroke-width="1.7"/><path d="M9 7a3 3 0 0 1 6 0" stroke="currentColor" stroke-width="1.7"/></svg><span class="cart-badge">2</span></a>
+    </div>
+  </div>
+</header>
+
+<main id="main" class="section-tight">
+  <div class="wrap">
+    <h1 class="h1 serif" style="margin-bottom:28px;">Your cart</h1>
+
+    <div class="grid" style="grid-template-columns: 1fr 380px; gap:32px; align-items:start;">
+      <!-- Line items -->
+      <section class="card shadow-soft">
+        <!-- item 1 -->
+        <div class="card-pad row" data-testid="cart-line-item" style="gap:18px;align-items:flex-start;">
+          <div class="thumb ph ph-moss" aria-hidden="true" style="width:96px;height:96px;aspect-ratio:auto;border-radius:12px;flex:none;"></div>
+          <div style="flex:1;" class="stack-sm">
+            <span class="maker">Field &amp; Kiln</span>
+            <div class="h4" data-testid="cart-line-title">Wood-fired serving bowl</div>
+            <p class="small muted">Glaze: Deep moss · Size: Large 28cm</p>
+            <div class="row" style="gap:16px;margin-top:4px;">
+              <div class="field" style="width:auto;">
+                <label id="q1-label" class="caption">Qty</label>
+                <div class="qty is-sm" role="group" aria-labelledby="q1-label">
+                  <button type="button" class="qty-btn" aria-label="Decrease quantity">&minus;</button>
+                  <input id="q1" class="qty-val" type="number" min="1" value="1" aria-label="Quantity" data-testid="cart-line-qty">
+                  <button type="button" class="qty-btn" aria-label="Increase quantity">+</button>
+                </div>
+              </div>
+              <button class="btn btn-ghost btn-sm" data-testid="cart-line-remove" style="color:var(--text-muted);align-self:flex-end;">Remove</button>
+            </div>
+          </div>
+          <div class="price h4" style="font-family:var(--font-display);">$92</div>
+        </div>
+        <hr class="divider">
+        <!-- item 2 -->
+        <div class="card-pad row" data-testid="cart-line-item" style="gap:18px;align-items:flex-start;">
+          <div class="thumb ph ph-rust" aria-hidden="true" style="width:96px;height:96px;aspect-ratio:auto;border-radius:12px;flex:none;"></div>
+          <div style="flex:1;" class="stack-sm">
+            <span class="maker">Ardal Clayworks</span>
+            <div class="h4" data-testid="cart-line-title">Stoneware mug, set of 2</div>
+            <p class="small muted">Glaze: Ember</p>
+            <div class="row" style="gap:16px;margin-top:4px;">
+              <div class="field" style="width:auto;">
+                <label id="q2-label" class="caption">Qty</label>
+                <div class="qty is-sm" role="group" aria-labelledby="q2-label">
+                  <button type="button" class="qty-btn" aria-label="Decrease quantity">&minus;</button>
+                  <input id="q2" class="qty-val" type="number" min="1" value="1" aria-label="Quantity" data-testid="cart-line-qty">
+                  <button type="button" class="qty-btn" aria-label="Increase quantity">+</button>
+                </div>
+              </div>
+              <button class="btn btn-ghost btn-sm" data-testid="cart-line-remove" style="color:var(--text-muted);align-self:flex-end;">Remove</button>
+            </div>
+          </div>
+          <div class="price h4" style="font-family:var(--font-display);">$72</div>
+        </div>
+
+        <!-- empty state (registered; hidden) -->
+        <div class="card-pad" data-testid="cart-empty-state" style="display:none;">
+          <p class="muted">Your cart is empty. <a href="search.html">Ask the concierge</a> for a place to start.</p>
+        </div>
+      </section>
+
+      <!-- Summary -->
+      <aside class="card shadow-soft card-pad stack" style="position:sticky;top:96px;">
+        <h2 class="h3 serif">Summary</h2>
+        <div class="stack-sm small">
+          <div class="between"><span class="muted">Subtotal</span><span data-testid="cart-subtotal">$164.00</span></div>
+          <div class="between"><span class="muted">Shipping</span><span>$6.00</span></div>
+          <div class="between"><span class="muted">Plastic-free packaging</span><span class="badge badge-success">Free</span></div>
+        </div>
+        <hr class="divider">
+        <div class="between"><span class="h4">Total</span><span class="h3 serif price">$170.00</span></div>
+        <a class="btn btn-accent btn-lg btn-block" href="checkout.html" data-testid="cart-checkout-cta">Proceed to checkout</a>
+        <p class="caption" style="text-transform:none;text-align:center;">Taxes calculated at checkout · 30-day returns</p>
+
+        <div class="agent-note" style="margin-top:4px;">
+          <b>Concierge:</b> both pieces are from glaze families that match — they’ll read as a set when they arrive.
+        </div>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap"><div class="foot-bottom" style="border:none;margin:0;padding:24px 0;"><span>© 2026 Hearth. Made with care.</span><span>Privacy · Terms · Maker policy</span></div></div>
+</footer>
+</body>
+</html>

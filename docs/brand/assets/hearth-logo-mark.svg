@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Hearth">
+  <!-- Concept 2 "Keystone": two interlocking rounded planes that nest like
+       cupped hands / a sheltering wedge. Abstract, geometric, ownable.
+       No flame, no arch, no face. The inner plane is offset to feel 'held'. -->
+  <!-- outer plane (the shelter) -->
+  <path d="M32 8
+           L54 21
+           C56 22.2, 56 25, 54 26.2
+           L34 38
+           C32.8 38.7, 31.2 38.7, 30 38
+           L10 26.2
+           C8 25, 8 22.2, 10 21 Z"
+        fill="currentColor"/>
+  <!-- inner plane (the held thing), offset down + lighter via opacity -->
+  <path d="M32 28
+           L50 38.5
+           C52 39.7, 52 42.5, 50 43.7
+           L34 53
+           C32.8 53.7, 31.2 53.7, 30 53
+           L14 43.7
+           C12 42.5, 12 39.7, 14 38.5 Z"
+        fill="currentColor" opacity="0.45"/>
+</svg>

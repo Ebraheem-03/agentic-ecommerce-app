@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 248 64" fill="none" role="img" aria-label="Hearth">
+  <!-- Concept 2 "Keystone" lockup -->
+  <g>
+    <path d="M32 8 L54 21 C56 22.2, 56 25, 54 26.2 L34 38 C32.8 38.7, 31.2 38.7, 30 38
+             L10 26.2 C8 25, 8 22.2, 10 21 Z" fill="currentColor"/>
+    <path d="M32 28 L50 38.5 C52 39.7, 52 42.5, 50 43.7 L34 53 C32.8 53.7, 31.2 53.7, 30 53
+             L14 43.7 C12 42.5, 12 39.7, 14 38.5 Z" fill="currentColor" opacity="0.45"/>
+  </g>
+  <!-- Wordmark set in Fraunces per US-E2-03 sign-off. Renders Fraunces where loaded (app bundles it),
+       else falls back to a serif. TODO (Day 3, Iris): outline to vector paths once Fraunces is bundled,
+       so the standalone asset is font-independent. Mark geometry above is unchanged. -->
+  <text x="70" y="43" fill="currentColor"
+        font-family="'Fraunces','Georgia',serif"
+        font-size="34" font-weight="600" letter-spacing="-0.25">Hearth</text>
+</svg>

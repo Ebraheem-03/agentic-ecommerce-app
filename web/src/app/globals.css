@@ -1,0 +1,191 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   Hearth design tokens — US-E2-04
+   Source of truth: docs/brand/palette-and-type.md (§1–6).
+   This file is the ONLY place raw hex values live. Everything else consumes
+   the CSS custom properties below, or the Tailwind utilities mapped in @theme.
+   ========================================================================== */
+
+:root {
+  /* --- §1 Brand ------------------------------------------------------------ */
+  --brand: #b5512f;          /* Clay / terracotta — Keystone outer plane */
+  --brand-strong: #933e22;   /* pressed / hover; AA as text on --bg */
+  --brand-tint: #f6e7df;     /* very light clay wash */
+  --accent: #e08a3c;         /* Ember — agent voice, Keystone inner plane */
+  --accent-strong: #c5722b;  /* ember-as-text / pressed accent */
+  --accent-tint: #fceedd;    /* assistant chat-bubble surface */
+
+  /* --- §2 Neutrals (warm gray ramp) --------------------------------------- */
+  --n-50: #faf8f6;
+  --n-100: #f3efeb;
+  --n-200: #e7e0d9;
+  --n-300: #d4c9bf;
+  --n-400: #a99c8f;
+  --n-500: #7c6f62;
+  --n-600: #5e5247;
+  --n-700: #433a31;
+  --n-800: #2c261f;
+  --n-900: #1b1611;
+
+  /* --- §3 Semantic (tuned warm) ------------------------------------------- */
+  --success: #3e7c5a;
+  --success-tint: #e4f0e8;
+  --warning: #c58a1e;
+  --warning-tint: #fbf0d8;
+  --error: #c23b34;
+  --error-tint: #fbe6e4;
+  --info: #3f6e86;
+  --info-tint: #e2edf1;
+
+  /* --- §4 Surface & text roles — LIGHT ------------------------------------ */
+  --bg: #faf8f6;             /* warm near-white */
+  --surface: #ffffff;        /* raised content */
+  --surface-muted: #f3efeb;  /* secondary panels */
+  --border: #e7e0d9;
+  --text: #1b1611;           /* warm near-black */
+  --text-muted: #5e5247;     /* --n-600 */
+  --on-accent: #ffffff;      /* text/icon on --accent & --brand (light UI) */
+}
+
+/* --- §4 Surface & text roles — DARK --------------------------------------- */
+[data-theme="dark"] {
+  --bg: #1b1611;             /* warm-dark, not black */
+  --surface: #2c261f;
+  --surface-muted: #241f19;
+  --border: #433a31;
+  --text: #f3efeb;           /* warm off-white */
+  --text-muted: #a99c8f;     /* --n-400 */
+  --on-accent: #1b1611;      /* dark ink on warm fills reads cleanest on dark */
+}
+
+/* ============================================================================
+   §6 Typography + role tokens → Tailwind utilities.
+   `@theme inline` keeps the utilities resolving to the live var() values, so
+   theme swaps via [data-theme] flow through to bg-bg / text-text / etc.
+   ========================================================================== */
+@theme inline {
+  /* Fonts (vars are injected by next/font in layout.tsx) */
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-outfit), "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  /* Brand colors */
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-tint: var(--brand-tint);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-tint: var(--accent-tint);
+
+  /* Neutral ramp */
+  --color-n-50: var(--n-50);
+  --color-n-100: var(--n-100);
+  --color-n-200: var(--n-200);
+  --color-n-300: var(--n-300);
+  --color-n-400: var(--n-400);
+  --color-n-500: var(--n-500);
+  --color-n-600: var(--n-600);
+  --color-n-700: var(--n-700);
+  --color-n-800: var(--n-800);
+  --color-n-900: var(--n-900);
+
+  /* Semantic */
+  --color-success: var(--success);
+  --color-success-tint: var(--success-tint);
+  --color-warning: var(--warning);
+  --color-warning-tint: var(--warning-tint);
+  --color-error: var(--error);
+  --color-error-tint: var(--error-tint);
+  --color-info: var(--info);
+  --color-info-tint: var(--info-tint);
+
+  /* Surface & text roles */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-on-accent: var(--on-accent);
+
+  /* §6 Modular type scale (font-size + paired line-height) */
+  --text-display: 3.5rem;
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.02em;
+  --text-h1: 2.5rem;
+  --text-h1--line-height: 1.1;
+  --text-h1--letter-spacing: -0.015em;
+  --text-h2: 1.875rem;
+  --text-h2--line-height: 1.15;
+  --text-h2--letter-spacing: -0.01em;
+  --text-h3: 1.5rem;
+  --text-h3--line-height: 1.2;
+  --text-h3--letter-spacing: -0.005em;
+  --text-h4: 1.25rem;
+  --text-h4--line-height: 1.3;
+  --text-body-lg: 1.125rem;
+  --text-body-lg--line-height: 1.6;
+  --text-body: 1rem;
+  --text-body--line-height: 1.6;
+  --text-small: 0.875rem;
+  --text-small--line-height: 1.5;
+  --text-small--letter-spacing: 0.005em;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.4;
+  --text-caption--letter-spacing: 0.02em;
+}
+
+/* ============================================================================
+   Base layer — sensible document defaults that honor the tokens.
+   ========================================================================== */
+@layer base {
+  html {
+    color-scheme: light;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  html[data-theme="dark"] {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    text-wrap: balance;
+  }
+
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-sans);
+    font-weight: 500;
+  }
+
+  /* Theme swaps shouldn't animate layout, but a color crossfade reads calmer. */
+  body,
+  body * {
+    transition:
+      background-color 200ms ease,
+      border-color 200ms ease,
+      color 200ms ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body,
+    body * {
+      transition: none;
+    }
+  }
+}

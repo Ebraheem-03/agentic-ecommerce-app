@@ -1,0 +1,64 @@
+# Local full-stack dev: web + api + db (Postgres/pgvector).
+# Usage:
+#   cp .env.example .env
+#   docker compose up --build
+#
+# Validate syntax without starting anything:
+#   docker compose config
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      # No real default password is shipped — override in .env for local dev.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_ME}
+      POSTGRES_DB: ${POSTGRES_DB:-agentic_ecommerce}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      # Init scripts run once on a fresh data dir; enables the vector extension.
+      - ./infra/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-agentic_ecommerce}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    environment:
+      # Built from the POSTGRES_* values above so no literal credentials live in
+      # the repo. To target an external DB, override the POSTGRES_* vars in .env.
+      # The +psycopg driver suffix is what SQLAlchemy/Alembic use; the plain
+      # libpq form (psql, etc.) ignores it.
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-CHANGE_ME}@db:5432/${POSTGRES_DB:-agentic_ecommerce}
+      # pgvector embedding dimension for migrations (see .env.example / ADR-0018).
+      EMBED_DIM: ${EMBED_DIM:-768}
+      PORT: 8000
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      PORT: 3000
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  db-data:

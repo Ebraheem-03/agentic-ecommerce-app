@@ -1,0 +1,6 @@
+# Dev/CI tooling for the FastAPI backend.
+-r requirements.txt
+ruff>=0.5
+mypy>=1.10
+pytest>=8.2
+httpx>=0.27
