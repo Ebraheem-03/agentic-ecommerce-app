@@ -1,7 +1,13 @@
 # --- Bootstrap .gitignore (Atlas) — Rhea extends this in US-E1-01 for web/ + api/ ---
 
-# Claude Code local-only settings (never commit personal permissions/state)
+# Claude Code local-only settings + per-agent memory (never commit personal/local state)
 .claude/settings.local.json
+.claude/agent-memory/
+**/.claude/agent-memory/
+**/.claude/settings.local.json
+# Installed skills + transient agent worktrees are local tooling, not project code
+.claude/skills/
+.claude/worktrees/
 
 # OS / editor noise
 .DS_Store
@@ -17,3 +23,35 @@ Thumbs.db
 
 # Logs / temp
 *.log
+
+# --- Node / Next.js (web/) ---
+node_modules/
+.next/
+out/
+build/
+dist/
+.turbo/
+*.tsbuildinfo
+.npm/
+.pnp.*
+.yarn/*
+
+# --- E2E (Playwright, e2e/) ---
+test-results/
+playwright-report/
+playwright/.cache/
+blob-report/
+
+# --- Python / FastAPI (api/) ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.so

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 236 64" fill="none" role="img" aria-label="Hearth">
+  <!-- Concept 3 "Rise" lockup -->
+  <g>
+    <path d="M28 54 C22 47, 21 39, 26 31 C29.5 25.5, 36 22, 38 12
+             C41.5 19, 41 27, 36.5 34 C33 39.5, 31 44, 36 50
+             C33 53, 30 54.5, 28 54 Z" fill="currentColor"/>
+    <path d="M39 13 C42 11, 44 8.5, 44.5 5 C42.5 7, 40.5 8.5, 38.5 9.5 Z" fill="currentColor"/>
+  </g>
+  <text x="60" y="42" fill="currentColor"
+        font-family="'Outfit','Segoe UI',system-ui,-apple-system,sans-serif"
+        font-size="34" font-weight="600" letter-spacing="-0.5">Hearth</text>
+</svg>
