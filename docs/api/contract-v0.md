@@ -66,7 +66,7 @@ One canonical body for every non-2xx:
 
 ### 1.3 Auth & idempotency
 
-- **Auth (proposed):** opaque server-side **session token** backed by the `sessions` table (`token_hash`, `expires_at`), sent as `Authorization: Bearer <token>`. Logout = delete the session row. NOT a JWT (so revocation is instant). See [REVIEW] §5.
+- **Auth (RATIFIED):** opaque server-side **session token** backed by the `sessions` table (`token_hash`, `expires_at`), sent as `Authorization: Bearer <token>`. Logout = delete the session row. NOT a JWT (so revocation is instant). Implementation calls (hashing, session lifetime, email-verify gate) ratified 2026-06-17 — see **ADR-0023**: argon2id password hashing · **sliding 7-day** token (SHA-256 of a `token_urlsafe(32)` stored) · `email_verified` gate (login `403` while unverified; seed marks personas verified).
 - **Idempotency:** state-mutating routes that create money/agent side-effects (checkout, payment-intent, payment-confirm, nudge-accept, agent message) accept an **`Idempotency-Key` header** (preferred) or a body `idempotency_key` fallback. Replays return the original result, not a duplicate.
 
 ---
@@ -215,7 +215,7 @@ The six [REVIEW] questions are signed off by the human. This section is the lock
 
 | # | Decision | Ruling (RATIFIED) |
 |---|---|---|
-| 1 | **Auth mechanism** | ✅ **Opaque server-side session token** — backed by `sessions(token_hash, expires_at)`; `Authorization: Bearer <token>`; logout = delete row → instant revocation. NOT a JWT. *(Draft default kept.)* |
+| 1 | **Auth mechanism** | ✅ **Opaque server-side session token** — backed by `sessions(token_hash, expires_at)`; `Authorization: Bearer <token>`; logout = delete row → instant revocation. NOT a JWT. *(Draft default kept.)* **Impl calls ratified 2026-06-17 (ADR-0023):** argon2id hashing · sliding 7-day token (SHA-256 stored) · `email_verified` gate (login `403` while unverified; auth-backed seeding marks personas verified → flips the 6 login xfails). |
 | 2 | **Response envelope** | ✅ **Wrapped `{data, meta}`** — single envelope; pagination in `meta`; mirrors the error envelope. *(Draft default kept.)* |
 | 3 | **Pagination** | ✅ **Opaque cursor** in `meta.next_cursor`, one style across all list routes; `limit` 1–100; `total` best-effort. *(Draft default kept.)* |
 | 4 | **Search v0** | ✅ **Keyword-only, semantic-ready** — response carries per-result `score` + a top-level `mode` discriminator (`SearchMode`: `keyword`\|`semantic`\|`hybrid`) now; pgvector retrieval drops in behind the same shape with **no contract change**. Stay embedding-agnostic (no `EMBED_DIM` baked); **pgvector deferred to Echo, Week-2**. *(Draft default kept.)* |
