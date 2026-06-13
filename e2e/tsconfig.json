@@ -7,9 +7,10 @@
     "types": ["node"],
     "strict": true,
     "esModuleInterop": true,
+    "resolveJsonModule": true,
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["**/*.ts"],
+  "include": ["**/*.ts", "../api/tests/fixtures/fixture-manifest.json"],
   "exclude": ["node_modules"]
 }
