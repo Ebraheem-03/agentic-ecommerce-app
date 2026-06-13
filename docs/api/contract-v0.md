@@ -1,7 +1,7 @@
-# Hearth — API Contract v0 (DRAFT) — US-E4-00
+# Hearth — API Contract v0 — US-E4-00
 
-> Status: **DRAFT — [REVIEW] pending human sign-off.** Owner: Orion (Backend). Day 6 · 2026-06-14.
-> Branch: `feature/api-contracts-inventory` (off `integration/backend`). Nothing here is locked.
+> Status: **LOCKED — ratified 2026-06-14** (all 6 [REVIEW] decisions signed off; see §5 + ADR-0021). Owner: Orion (Backend). Day 6 · 2026-06-14.
+> Branch: `feature/api-contracts-inventory` (off `integration/backend`). This is the contract Week-2 build stories implement against.
 > Scope: auth · catalog · search · cart · orders · returns · agent-chat (+ implied seller & admin).
 > This is a **contract preview**: every route handler is a `501 not_implemented` stub so the
 > Scalar reference renders the full shape for review. No business logic exists yet.
@@ -119,7 +119,7 @@ One canonical body for every non-2xx:
 | POST `/orders/{id}/payment-confirm` | Confirm mock intent | user | `PaymentConfirmRequest` | `PaymentOut` | 200 | J-BUY-04 |
 | POST `/orders/{id}/returns` | Request a return | user | `ReturnCreate` | `ReturnOut` | 201 | J-BUY-06 |
 
-> **Payment is test-mode only** — no real PSP. Intent→confirm maps to the `payments` table + `payment_status` enum; `PaymentConfirmRequest.outcome` lets E2E drive success (`captured`) vs decline (`payment_declined`/402) deterministically. Order is a single multi-store order with per-item snapshots (title/options/store/unit price frozen).
+> **Payment is test-mode only** — no real PSP. Intent→confirm maps to the `payments` table + `payment_status` enum. **Deterministic decline switch (RATIFIED — for Juno's J-BUY-04 fixtures):** `PaymentConfirmRequest.outcome` is the authoritative trigger. Send `outcome="captured"` (the default) for a successful capture; send **`outcome="failed"`** to force a deterministic decline → the confirm returns **`402 payment_declined`** and the payment row lands in `payment_status=failed` (order stays unpaid/`placed`, not cancelled). No magic amounts, no env flag, no randomness — the decline is purely a function of the request body, so fixtures are stable. Order is a single multi-store order with per-item snapshots (title/options/store/unit price frozen).
 
 ### returns (`/returns`)
 | Method · Path | Purpose | Auth | Request | Response | Success | Journey |
@@ -133,11 +133,41 @@ One canonical body for every non-2xx:
 ### agent — Ember (`/agent`)
 | Method · Path | Purpose | Auth | Request | Response | Success | Journey |
 |---|---|---|---|---|---|---|
-| POST `/agent/conversations` | Start conversation (surface) | user | `ConversationStartRequest` | `ConversationStartResponse` | 201 | J-BUY-01/02, J-SUP-02, J-SEL-03 |
-| GET `/agent/conversations/{id}` | Transcript + citations | user | — | `ConversationOut` | 200 | — |
-| POST `/agent/conversations/{id}/messages` | Message in → assistant reply | user | `MessageRequest` + `Idempotency-Key` | `AgentReply` | 200 | J-BUY-03/06, J-SUP-02/03 |
+| POST `/agent/conversations` | Start conversation (surface) | user | `ConversationStartRequest` | **SSE stream** (`text/event-stream`) | 201 | J-BUY-01/02, J-SUP-02, J-SEL-03 |
+| GET `/agent/conversations/{id}` | Transcript + citations (JSON, not streamed) | user | — | `ConversationOut` | 200 | — |
+| GET `/agent/_sse-events` | SSE event payload reference (typed shapes) | user | — | `SseEventCatalog` | 200 | — |
+| POST `/agent/conversations/{id}/messages` | Message in → assistant reply **streamed** | user | `MessageRequest` + `Idempotency-Key` | **SSE stream** (`text/event-stream`) | 200 | J-BUY-03/06, J-SUP-02/03 |
 
-> **The contract Echo (Week-2) implements against.** Surface ∈ `buyer\|support\|seller`. The reply (`AgentReply`) carries: the assistant `MessageOut` **with `citations[]`** (each → an `embedding_source` product/policy row + chunk), optional `recommendations[]` (grounded product + `reason`, backing `agent-recommendation-*` testids), and an optional `action` whose **`outcome` ∈ `applied\|refused\|hitl_deferred`** (mirrors `agent_actions`). Persists to `conversations`/`messages`/`agent_actions`. **v0 is single-response, not streamed** — see [REVIEW] §5. Model/provider-agnostic.
+> **The contract Echo (Week-2) implements against. The assistant turn is an SSE stream (`text/event-stream`), RATIFIED 2026-06-14 ([REVIEW] decision 5; ADR-0021) — NOT a single JSON body.** Surface ∈ `buyer\|support\|seller`. The REQUEST side is unchanged JSON (`ConversationStartRequest` / `MessageRequest` + optional context order/product ids + `Idempotency-Key`). The transcript GET stays JSON (it reads the persisted conversation). Persists to `conversations`/`messages`/`agent_actions` exactly as before (citations jsonb, `agent_outcome` enum). Model/provider-agnostic. **Note for Iris/Echo Week-2: this is the streaming generative-UI surface.**
+
+#### Agent SSE event protocol
+
+The turn is delivered as ordered `text/event-stream` frames. Each `data:` payload is a typed Pydantic model in `app/schemas/agent.py` (also exposed as a named schema on the Scalar page via `GET /agent/_sse-events` → `SseEventCatalog`):
+
+| `event:` | `data:` payload | Model | Cardinality | Meaning |
+|---|---|---|---|---|
+| `token` | `"<text delta>"` | `TokenEvent` (`delta`) | 0..n, ordered | A chunk of the assistant message; append in order. |
+| `citations` | `[ {source_type, source_id, chunk_index, snippet, score}, … ]` | `CitationsEvent` (`citations[]`) | 0..1 | Grounding citations; emitted when retrieval resolves — **may arrive after some `token` frames**. |
+| `done` | `{ conversation_id, message_id, action, recommendations[] }` | `DoneEvent` | 1 (terminal) | Persisted turn: the `agent_actions` row (`action`, whose `outcome ∈ applied\|refused\|hitl_deferred`; null for pure clarify/refusal), any grounded `recommendations`, and the ids to reconcile with the transcript GET. Stream closes after this. |
+| `error` | `{ error: { code, message, details } }` | `StreamError` (wraps `ErrorBody`) | 0..1 (terminal) | Stream-level failure — carries the **canonical error envelope** body (closed `code` set) so a mid-stream failure is as machine-checkable as a non-2xx. Stream closes after this. |
+
+Illustrative wire (happy path):
+
+```text
+event: token
+data: "Let me check"
+
+event: token
+data: " our stock."
+
+event: citations
+data: [{"source_type":"product","source_id":"…","chunk_index":0,"snippet":"…","score":0.82}]
+
+event: done
+data: {"conversation_id":"…","message_id":"…","action":null,"recommendations":[]}
+```
+
+The contract-draft route stub yields exactly this ordered `token → citations → done` sequence so the shape is demonstrable; Week-2 swaps in the real agent loop (retrieve → ground → act → persist). The event **order and payload types are the locked contract**; the placeholder strings are not.
 
 ### seller (`/seller`) — implied by seller-dashboard + J-SEL-*
 | Method · Path | Purpose | Auth | Request | Response | Success | Journey |
@@ -179,26 +209,17 @@ These are contract needs that the current schema doesn't obviously cover. **No m
 
 ---
 
-## 5. [REVIEW] — decisions needed
+## 5. DECISIONS — RATIFIED 2026-06-14
 
-Genuine choices for the human to ratify. Recommended default in **bold**.
+The six [REVIEW] questions are signed off by the human. This section is the locked record of truth; the durable rationale lives in **ADR-0021**. Week-2 build stories implement against these.
 
-1. **Auth mechanism — session token vs JWT.**
-   Recommend **opaque server-side session token** (backed by the existing `sessions` table; Bearer header; logout = row delete → instant revocation). The schema already has `sessions(token_hash, expires_at)`, so this is the lower-friction, more honest choice for a portfolio app. *Alternative: stateless JWT (no DB hit per request, but revocation is awkward and we'd not use the `sessions` table).*
+| # | Decision | Ruling (RATIFIED) |
+|---|---|---|
+| 1 | **Auth mechanism** | ✅ **Opaque server-side session token** — backed by `sessions(token_hash, expires_at)`; `Authorization: Bearer <token>`; logout = delete row → instant revocation. NOT a JWT. *(Draft default kept.)* |
+| 2 | **Response envelope** | ✅ **Wrapped `{data, meta}`** — single envelope; pagination in `meta`; mirrors the error envelope. *(Draft default kept.)* |
+| 3 | **Pagination** | ✅ **Opaque cursor** in `meta.next_cursor`, one style across all list routes; `limit` 1–100; `total` best-effort. *(Draft default kept.)* |
+| 4 | **Search v0** | ✅ **Keyword-only, semantic-ready** — response carries per-result `score` + a top-level `mode` discriminator (`SearchMode`: `keyword`\|`semantic`\|`hybrid`) now; pgvector retrieval drops in behind the same shape with **no contract change**. Stay embedding-agnostic (no `EMBED_DIM` baked); **pgvector deferred to Echo, Week-2**. *(Draft default kept.)* |
+| 5 | **Agent chat** | ✅ **SSE STREAMING** (`text/event-stream`) — **CHANGED from the draft's single-JSON `AgentReply`.** Event protocol `token → citations → done` (+ `error`), each `data:` payload a typed model (`TokenEvent` / `CitationsEvent` / `DoneEvent` / `StreamError`). Request side + persisted entities (conversations/messages/agent_actions, citations jsonb, `agent_outcome` enum) unchanged. See §"Agent SSE event protocol". This is the Week-2 streaming generative-UI surface for Iris/Echo. |
+| 6 | **Test-mode payment** | ✅ **Two-step intent → confirm** with a **deterministic decline switch**: `PaymentConfirmRequest.outcome="failed"` → `402 payment_declined`, payment row `failed`, order stays `placed`. Drives J-BUY-04's failed-checkout path with stable fixtures (no magic amount / env flag / randomness). *(Draft default kept; decline mechanism documented for Juno.)* |
 
-2. **Response envelope — wrapped vs bare.**
-   Recommend **wrapped `{data, meta}`** (single envelope, pagination lives in `meta`, mirrors the error envelope's shape). *Alternative: bare resource + pagination in headers — leaner but inconsistent with the error body and harder for Echo's agent tools to parse uniformly.*
-
-3. **Pagination — cursor vs page/offset.**
-   Recommend **cursor** (opaque `next_cursor`, stable under inserts, good for infinite-scroll catalog/search). *Alternative: `page`/`limit` — simpler for a "page 3" UI but drifts as rows change.*
-
-4. **Search in v0 — keyword-only vs semantic now.**
-   Recommend **keyword for v0**, with the response already shaped for semantic (`score`, `mode`) so Echo drops in pgvector retrieval later **without a contract change**. *Avoids blocking on `EMBED_DIM` / embedding backfill during Week-1.*
-
-5. **Agent chat — single-response vs streaming.**
-   Recommend **single JSON response** (`AgentReply`) for v0 — simplest to persist, cite, and test against RAGAS gates; the frontend `agent-thinking-indicator` covers latency UX. *Alternative: SSE/streaming tokens — nicer feel, but complicates citation assembly, idempotency, and QA. Defer to a later story.*
-
-6. **Test-mode payment shape — intent/confirm vs single mock charge.**
-   Recommend **two-step intent → confirm** (mirrors a real PSP, maps cleanly to `payments` + `payment_status`, and `PaymentConfirmRequest.outcome` gives E2E a deterministic decline switch for J-BUY-04). *Alternative: a single `POST /orders/{id}/pay` that always succeeds — simpler but can't exercise the decline path.*
-
-> On sign-off, Atlas merges `feature/api-contracts-inventory` → `integration/backend` and Week-2 build stories implement handlers against these locked types.
+> Locked. Atlas FF-merges `feature/api-contracts-inventory` → `integration/backend`; Week-2 build stories implement handlers against these types.
