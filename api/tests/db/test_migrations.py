@@ -219,4 +219,4 @@ def test_rollback_to_base_then_roundtrip(migration_db: tuple[Config, str]) -> No
     with open_conn(dsn) as conn:
         assert _app_tables(conn) == EXPECTED_TABLES
         assert _enum_types(conn) == EXPECTED_ENUMS
-        assert _scalar(conn, "SELECT version_num FROM alembic_version") == "0003_embeddings"
+        assert _scalar(conn, "SELECT version_num FROM alembic_version") == "0004_email_verified"
