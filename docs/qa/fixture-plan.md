@@ -51,8 +51,9 @@ All resolved by **email** against the seed `USERS`. Auth path is contract-v0:
 the `token` is sent as `Authorization: Bearer <token>` on every authed call; logout
 deletes the session row (instant revocation). The seed provisions **identities only**
 (no passwords yet), so the fixture contract pins a single deterministic test password
-(`CHANGE_ME_test_pw`) per persona; Week-2's auth-backed seeding must write exactly
-those credentials. Until then, login is `xfail`-guarded (see §3).
+per persona — env-derived (`HEARTH_TEST_PASSWORD`, default an obvious placeholder; see
+`handles.py`) so no literal credential is committed; Week-2's auth-backed seeding must
+write exactly those credentials. Until then, login is `xfail`-guarded (see §3).
 
 | Handle | Email | Role | Used for |
 |---|---|---|---|
