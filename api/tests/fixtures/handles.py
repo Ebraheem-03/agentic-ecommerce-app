@@ -20,6 +20,7 @@ write. Until then the ``persona_client`` fixture xfails on login (see conftest).
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 
 from app.db.seed import data
@@ -27,7 +28,10 @@ from app.schemas.enums import ReturnReason, UserRole
 
 # A single deterministic password for every seeded persona in test-mode. Not a
 # secret (test data only); kept here so all three layers log in identically.
-TEST_PASSWORD = "CHANGE_ME_test_pw"
+# Env-derived so no literal credential is committed (GitGuardian scans full
+# history): override with HEARTH_TEST_PASSWORD; the default is an obvious
+# placeholder. Regenerate the manifest after changing this default.
+TEST_PASSWORD = os.environ.get("HEARTH_TEST_PASSWORD", "CHANGE_ME_test_pw")
 
 
 @dataclass(frozen=True, slots=True)
