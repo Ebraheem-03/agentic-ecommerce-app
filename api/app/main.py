@@ -13,6 +13,7 @@ default Swagger UI + ReDoc are disabled. The raw OpenAPI document is at ``/opena
 from __future__ import annotations
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from scalar_fastapi import get_scalar_api_reference
@@ -28,6 +29,8 @@ from app.api.routers import (
     search,
     seller,
 )
+from app.core.config import settings
+from app.core.errors import install_error_handlers
 
 app = FastAPI(
     title="Hearth — Agentic E-Commerce API",
@@ -36,6 +39,21 @@ app = FastAPI(
     # Disable default Swagger UI + ReDoc; we serve Scalar at /docs (see below).
     docs_url=None,
     redoc_url=None,
+)
+
+# Render the canonical error envelope for every non-2xx (US-E4-01); without this,
+# FastAPI emits its default ``{"detail": ...}`` shape.
+install_error_handlers(app)
+
+# CORS: the SPA calls the API cross-origin with a Bearer session token + JSON, so we
+# allow credentials and let the browser send Authorization/Content-Type. Origins come
+# from settings (env-driven; defaults to the local web dev origin).
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],
 )
 
 
