@@ -16,9 +16,10 @@ client = TestClient(app)
 
 
 def test_stub_route_returns_not_implemented_envelope() -> None:
-    resp = client.post(
-        "/auth/login", json={"email": "a@b.com", "password": "hunter2hunter2"}
-    )
+    # /auth/login is a real handler now (US-E4-04); point at a route that is STILL a
+    # contract stub so we keep asserting the canonical 501 envelope. GET /products has
+    # no body/auth, so the 501 is reached without DB or validation getting in the way.
+    resp = client.get("/products")
     assert resp.status_code == 501
     assert resp.json() == {
         "error": {
