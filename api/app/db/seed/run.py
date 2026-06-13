@@ -12,11 +12,13 @@ without duplicating rows or erroring. Re-running updates mutable fields in place
 
 from __future__ import annotations
 
+import os
 from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.security import hash_password
 from app.db.models import (
     Embedding,
     Inventory,
@@ -32,6 +34,11 @@ from app.db.seed import data
 from app.db.seed.embeddings import SEED_STUB_MODEL, embed_text
 from app.db.session import session_scope
 
+# Single deterministic test-mode password for every seeded persona. Env-derived so no
+# literal credential is committed (GitGuardian scans full history) — the default MUST
+# match tests/fixtures/handles.py so all three test layers log in identically (ADR-0023).
+TEST_PASSWORD = os.environ.get("HEARTH_TEST_PASSWORD", "CHANGE_ME_test_pw")
+
 
 def _get_user(s: Session, email: str) -> User | None:
     return s.scalar(
@@ -40,6 +47,13 @@ def _get_user(s: Session, email: str) -> User | None:
 
 
 def _upsert_users(s: Session) -> dict[str, User]:
+    """Idempotently upsert seed personas WITH auth credentials (US-E4-04).
+
+    Every persona gets an argon2id hash of ``TEST_PASSWORD`` and ``email_verified=True``
+    so they can log in past the verification gate. Re-running refreshes the hash/flag in
+    place (a fresh argon2 salt each run is fine — verification still succeeds) without
+    duplicating rows.
+    """
     by_email: dict[str, User] = {}
     for u in data.USERS:
         existing = _get_user(s, u["email"])
@@ -49,6 +63,8 @@ def _upsert_users(s: Session) -> dict[str, User]:
         else:
             existing.display_name = u["display_name"]
             existing.role = u["role"]
+        existing.password_hash = hash_password(TEST_PASSWORD)
+        existing.email_verified = True
         by_email[u["email"]] = existing
     s.flush()
     return by_email
