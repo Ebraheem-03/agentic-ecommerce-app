@@ -29,6 +29,7 @@ from app.api.routers import (
     search,
     seller,
 )
+from app.core import email_compat  # noqa: F401 — applies the .test-TLD email tweak on import
 from app.core.config import settings
 from app.core.errors import install_error_handlers
 
