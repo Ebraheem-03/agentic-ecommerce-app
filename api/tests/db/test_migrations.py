@@ -25,7 +25,8 @@ from .conftest import open_conn
 
 # ---- expected object inventory (source of truth: erd.md + the 3 migrations) -----
 
-# 20 from 0002_core_schema + `embeddings` from 0003 = 21 app tables (excl. alembic_version).
+# 20 from 0002_core_schema + `embeddings` from 0003 + `idempotency_keys` from 0006
+# = 22 app tables (excl. alembic_version).
 EXPECTED_TABLES: frozenset[str] = frozenset(
     {
         "users",
@@ -49,6 +50,7 @@ EXPECTED_TABLES: frozenset[str] = frozenset(
         "messages",
         "agent_actions",
         "embeddings",
+        "idempotency_keys",
     }
 )
 
@@ -117,7 +119,7 @@ def test_clean_create(migration_db: tuple[Config, str]) -> None:
             f"table set mismatch; missing={EXPECTED_TABLES - tables} "
             f"unexpected={tables - EXPECTED_TABLES}"
         )
-        assert len(tables) == 21
+        assert len(tables) == 22
 
         # --- 14 native enums ---
         enums = _enum_types(conn)
@@ -238,4 +240,7 @@ def test_rollback_to_base_then_roundtrip(migration_db: tuple[Config, str]) -> No
     with open_conn(dsn) as conn:
         assert _app_tables(conn) == EXPECTED_TABLES
         assert _enum_types(conn) == EXPECTED_ENUMS
-        assert _scalar(conn, "SELECT version_num FROM alembic_version") == "0005_product_search"
+        assert (
+            _scalar(conn, "SELECT version_num FROM alembic_version")
+            == "0006_idempotency_keys"
+        )
