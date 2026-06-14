@@ -95,8 +95,21 @@ Then the §4 gates apply:
 
 ## What Echo must add in Week 2 to execute this
 
-This file + validator prove the set is **well-formed and seed-resolvable**. It does
-**not** run RAGAS (no agent runtime exists yet). To execute:
+> **Status (US-E7-00, Day-13): the harness now EXISTS** — `api/app/eval/` +
+> `api/tests/qa/test_ragas_harness.py`. It scores all four metrics (context precision/
+> recall + response relevancy + faithfulness) over this golden set and writes a score
+> artifact (`results/ragas-<date>.json` + `ragas-latest.json`, gitignored). The default
+> path is **deterministic + CI-safe** (no LLM keys, no network): precision/recall are
+> set-overlap math; the judge metrics run behind a `Judge` seam whose default is a
+> `DeterministicJudge` lexical stub (a *harness-exercising stub, not a semantic judge*),
+> and the per-question answer comes from a `StubAnswerer` (no live agent runtime yet).
+> **Pending keys:** a real Claude eval JUDGE (`EVAL_JUDGE`, default model
+> `claude-opus-4-8`) and the real agent ANSWERER (`EVAL_ANSWERER`) each register in one
+> place and swap with one setting — no harness change. The §4 quality gates below only
+> bind under a real judge. See **ADR-0030**.
+
+This file + validator prove the set is **well-formed and seed-resolvable**. The original
+plan to execute it (now partially DONE by the harness above):
 
 1. **Retriever** over the seeded `embeddings` (product + policy sources) returning
    chunks tagged back to product `slug` / policy `kind@store`, so retrieved contexts
@@ -109,6 +122,38 @@ This file + validator prove the set is **well-formed and seed-resolvable**. It d
    gate beyond the numeric RAGAS score.
 4. Wire the runner into CI alongside the E2E gate; block agent merges to `dev` on any
    metric below threshold or any refusal regression.
+
+## Retrieval smoke (US-QA-D10) — the no-LLM retrieval-half baseline
+
+Before the RAGAS judge half exists, `api/tests/qa/test_retrieval_smoke.py` runs a
+**deterministic, no-LLM** retrieval-quality smoke against the LIVE keyword `GET /search`
+(Postgres FTS, `ts_rank`) over the seeded catalog. It is the *retrieval half* of RAGAS —
+context **precision@k** / **recall@k** computed by checking whether each golden question's
+ground-truth `source_docs` products appear in the top-k results — with **no judge LLM**.
+
+- **Scope:** only **product-grounded** golden items (those whose `source_docs` cite a
+  `product` slug or a `variant` sku → its product). **Policy** source_docs are NOT in the
+  product catalog; policy/RAG retrieval is Echo's agent-RAG surface (Week-4) and is
+  *excluded*, not failed. v0: 17/25 items in scope, 8 policy-only excluded.
+- **Metrics:** `recall@k = |relevant ∩ topk| / |relevant|`,
+  `precision@k = |relevant ∩ topk| / min(k, n_retrieved)`, k=5. Means aggregated.
+- **It is a SMOKE, not a CI gate.** `websearch_to_tsquery` ANDs every token of the input,
+  so feeding a raw natural-language *question* matches ~nothing: **keyword question-recall
+  is ~0 by construction**. That is the captured finding — the exact gap semantic retrieval
+  (Echo, Decision-4) closes — not a failure. The test asserts only that the smoke RAN and
+  produced/logged well-formed scores; a separate liveness anchor proves keyword search DOES
+  recall the right product from a distinctive single *term*.
+- **Captured artifact:** `docs/qa/eval/results/retrieval-smoke-<date>.json` (+ a stable
+  `retrieval-smoke-latest.json`): scores, scope counts, per-item precision/recall, and the
+  full failing-sample log (question + expected slugs + retrieved top-k).
+
+**Hand-off to Echo (Week-4):** this smoke is the retrieval-half baseline. When semantic /
+pgvector retrieval lands (the `mode=semantic` swap), re-run the SAME smoke and compare
+against `retrieval-smoke-latest.json` — the question-level recall it lifts off ~0 is the
+measure of the semantic win. The faithfulness / answer-relevancy half (the judge-LLM gates
+in the table above) is the other half Echo adds on top.
+
+Run: `cd api && DATABASE_URL=... pytest tests/qa/test_retrieval_smoke.py -s -v`
 
 ## Validator
 

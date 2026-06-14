@@ -240,9 +240,9 @@ handle (a permanently-OOS SKU the seed already carries); `oos_at_add` is a **fac
 **Test command** (throwaway DB on alt host port, per the day's DB note):
 
 ```bash
-docker run -d --name hearth-fixture-db -e POSTGRES_PASSWORD=CHANGE_ME \
+docker run -d --name hearth-fixture-db -e POSTGRES_PASSWORD="$PGPASSWORD" \
   -p 55444:5432 pgvector/pgvector:pg16
-TEST_DATABASE_URL="postgresql+psycopg://postgres:CHANGE_ME@localhost:55444/postgres" \
+TEST_DATABASE_URL="postgresql+psycopg://postgres:$PGPASSWORD@localhost:55444/postgres" \
 DATABASE_URL="$TEST_DATABASE_URL" \
   .venv/bin/pytest tests/fixtures/ -q
 ```

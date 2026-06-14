@@ -1,52 +1,25 @@
-"""Deterministic stand-in embedding generation for the seed (US-E3-03).
+"""Back-compat shim — the embedding seam now lives in ``app.services.embeddings``.
 
-ECHO COORDINATION POINT
-=======================
-``embed_text`` is the SINGLE function Echo replaces with a real provider call
-(Groq/Gemini). Until then it returns a deterministic, hash-derived vector so the
-seed is reproducible and re-runnable. Two hard contracts the replacement MUST keep:
+US-E4-08 formalized the ad-hoc seed stub into a pluggable provider (``Embedder``
+protocol + ``StubEmbedder`` default, selected by ``settings.embed_provider``). The
+seed no longer owns embedding logic; it goes through the service like every other
+call site (e.g. future seller write handlers) so there is ONE provider seam.
 
-1. Output length == ``settings.embed_dim`` (the pgvector column dimension). NEVER
-   hardcode 768 — read it from settings so a dim change (one down/up on migration
-   0003) doesn't break the seed.
-2. ``model`` is a clearly-placeholder label (``SEED_STUB_MODEL``) so stub rows are
-   trivially distinguishable from real ones and can be re-embedded in bulk.
-
-The stub is NOT semantically meaningful (cosine distance between two stub vectors is
-meaningless) — it exists only to satisfy NOT NULL + the dimension contract so the
-retrieval plumbing can be wired and tested before real embeddings land.
+This module re-exports the stub's public names so any existing import of
+``app.db.seed.embeddings`` keeps working. Echo swaps providers in
+``app.services.embeddings`` — never here. See ADR-0026.
 """
 
 from __future__ import annotations
 
-import hashlib
-import struct
+from app.services.embeddings import SEED_STUB_MODEL, StubEmbedder
 
-from app.core.config import settings
-
-# Placeholder model tag written into embeddings.model for every seeded row. Echo's
-# real implementation should write the actual model id instead.
-SEED_STUB_MODEL = "seed-stub"
+__all__ = ["SEED_STUB_MODEL", "embed_text"]
 
 
 def embed_text(text: str) -> list[float]:
-    """Return a deterministic ``settings.embed_dim``-length vector for ``text``.
+    """Deterministic stub vector for ``text`` (delegates to the active stub embedder).
 
-    REPLACE THIS BODY (only the body) with a real embedding call. Keep the
-    signature and the length contract. Implementation: stream bytes from a SHA-256
-    keyed on the text, unpack to floats in [-1, 1], cycle until the configured
-    dimension is filled. Same text -> same vector (idempotent seeds).
+    Kept for back-compat. New code should use ``app.services.embeddings.get_embedder``.
     """
-    dim = settings.embed_dim
-    out: list[float] = []
-    counter = 0
-    while len(out) < dim:
-        digest = hashlib.sha256(f"{text}\x00{counter}".encode()).digest()
-        # 32-byte digest -> 8 floats (4 bytes each), scaled to [-1, 1].
-        for i in range(0, 32, 4):
-            (raw,) = struct.unpack(">I", digest[i : i + 4])
-            out.append((raw / 0xFFFFFFFF) * 2.0 - 1.0)
-            if len(out) >= dim:
-                break
-        counter += 1
-    return out[:dim]
+    return StubEmbedder().embed_text(text)
