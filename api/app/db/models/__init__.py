@@ -32,6 +32,7 @@ from app.db.models.catalog import (
     Variant,
 )
 from app.db.models.embedding import Embedding
+from app.db.models.idempotency import IdempotencyKey
 from app.db.models.order import Order, OrderItem, Payment
 from app.db.models.policy import Policy
 from app.db.models.returns import Return, ReturnItem
@@ -44,6 +45,7 @@ __all__ = [
     "CartItem",
     "Conversation",
     "Embedding",
+    "IdempotencyKey",
     "Inventory",
     "Message",
     "Order",
