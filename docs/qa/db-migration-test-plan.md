@@ -91,12 +91,12 @@ Then, from `api/` (deps: `pip install -r requirements-dev.txt`):
 ```bash
 # Migration contract (creates/drops its own throwaway DBs on the target server).
 # Prefer TEST_DATABASE_URL so it never touches your dev DATABASE_URL.
-export TEST_DATABASE_URL="postgresql+psycopg://postgres:qa_local_pw@localhost:5499/postgres"
+export TEST_DATABASE_URL="postgresql+psycopg://postgres:$PGPASSWORD@localhost:5499/postgres"
 export EMBED_DIM=768
 pytest tests/db -v
 
 # Guarded reset of a dev-named DB.
-DATABASE_URL="postgresql+psycopg://postgres:qa_local_pw@localhost:5499/hearth_dev" \
+DATABASE_URL="postgresql+psycopg://postgres:$PGPASSWORD@localhost:5499/hearth_dev" \
   EMBED_DIM=768 scripts/db_reset.sh
 ```
 
@@ -117,7 +117,7 @@ test-api:
     db:
       image: pgvector/pgvector:pg16
       env:
-        POSTGRES_PASSWORD: ci_pw
+        POSTGRES_PASSWORD: CHANGE_ME
         POSTGRES_DB: postgres
       ports: ["5432:5432"]
       options: >-
@@ -125,7 +125,7 @@ test-api:
         --health-timeout 5s --health-retries 10
   defaults: { run: { working-directory: api } }
   env:
-    TEST_DATABASE_URL: postgresql+psycopg://postgres:ci_pw@localhost:5432/postgres
+    TEST_DATABASE_URL: postgresql+psycopg://postgres:CHANGE_ME@localhost:5432/postgres
     EMBED_DIM: "768"
   steps:
     - uses: actions/checkout@v4
