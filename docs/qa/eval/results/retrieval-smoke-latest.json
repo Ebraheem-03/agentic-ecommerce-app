@@ -1,0 +1,566 @@
+{
+  "generated_at": "2026-06-14T08:12:20.752015+00:00",
+  "story": "US-QA-D10",
+  "endpoint": "GET /search",
+  "retrieval_mode": "keyword",
+  "k": 5,
+  "metric_notes": "context recall@k = |relevant \u2229 topk| / |relevant|; context precision@k = |relevant \u2229 topk| / min(k, n_retrieved). No-LLM retrieval smoke (RAGAS retrieval half). Informational, not a CI gate.",
+  "scope": {
+    "golden_total": 25,
+    "in_scope_product_grounded": 17,
+    "out_of_scope_policy_only": 8,
+    "failing_samples": 17
+  },
+  "scores": {
+    "mean_precision_at_k": 0.0,
+    "mean_recall_at_k": 0.0
+  },
+  "items": [
+    {
+      "id": "EVAL-001",
+      "question": "How much is the Tide Pour-Over Mug?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "direct",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "tide-pour-over-mug"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-002",
+      "question": "What colors does the Tide Pour-Over Mug come in?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "direct",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "tide-pour-over-mug"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-003",
+      "question": "Is the Tide Pour-Over Mug dishwasher safe and how big is it?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "multi-fact",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "tide-pour-over-mug"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-004",
+      "question": "Is the Ash Grey Tide mug in stock right now?",
+      "tags": {
+        "persona": "buyer",
+        "category": "inventory",
+        "difficulty": "direct",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "tide-pour-over-mug"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-005",
+      "question": "What's the average rating on the Tide Pour-Over Mug?",
+      "tags": {
+        "persona": "buyer",
+        "category": "reviews",
+        "difficulty": "multi-fact",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "tide-pour-over-mug"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-006",
+      "question": "Can I buy the Carryall Card Wallet in Espresso today?",
+      "tags": {
+        "persona": "buyer",
+        "category": "inventory",
+        "difficulty": "multi-fact",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "carryall-card-wallet"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-007",
+      "question": "How many cards does the Carryall Card Wallet hold and what's it made of?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "multi-fact",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "carryall-card-wallet"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-008",
+      "question": "Do you sell the Field Belt in a 36 inch size?",
+      "tags": {
+        "persona": "buyer",
+        "category": "inventory",
+        "difficulty": "direct",
+        "expects_refusal": true
+      },
+      "expected_slugs": [
+        "field-belt"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-009",
+      "question": "What's the brass-buckled Field Belt made from and how wide is it?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "multi-fact",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "field-belt"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-010",
+      "question": "Are the Morning Linen Napkins machine washable, and how many come in a set?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "multi-fact",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "morning-linen-napkins"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-011",
+      "question": "How much is the Harbor Throw and what are its dimensions?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "multi-fact",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "harbor-throw"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-012",
+      "question": "Tell me about the End-Grain Cutting Board \u2014 wood, size, and is it reversible?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "multi-fact",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "grain-cutting-board"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-013",
+      "question": "I want the Nara Serving Spoons \u2014 are they available?",
+      "tags": {
+        "persona": "buyer",
+        "category": "inventory",
+        "difficulty": "direct",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "nara-serving-spoons"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-014",
+      "question": "How long does the Hearthlight candle burn and what does it smell like?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "multi-fact",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "hearthlight-candle"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-015",
+      "question": "Do you have a lavender-scented candle?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "direct",
+        "expects_refusal": true
+      },
+      "expected_slugs": [
+        "hearthlight-candle"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-016",
+      "question": "Is the Salve Hand Balm free of synthetic fragrance?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "direct",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "salve-hand-balm"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-025",
+      "question": "I bought an opened jar of the Salve Hand Balm and want to return it because I didn't like the scent \u2014 can I?",
+      "tags": {
+        "persona": "support",
+        "category": "returns",
+        "difficulty": "combine",
+        "expects_refusal": true
+      },
+      "expected_slugs": [
+        "salve-hand-balm"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    }
+  ],
+  "failing_samples": [
+    {
+      "id": "EVAL-001",
+      "question": "How much is the Tide Pour-Over Mug?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "direct",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "tide-pour-over-mug"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-002",
+      "question": "What colors does the Tide Pour-Over Mug come in?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "direct",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "tide-pour-over-mug"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-003",
+      "question": "Is the Tide Pour-Over Mug dishwasher safe and how big is it?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "multi-fact",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "tide-pour-over-mug"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-004",
+      "question": "Is the Ash Grey Tide mug in stock right now?",
+      "tags": {
+        "persona": "buyer",
+        "category": "inventory",
+        "difficulty": "direct",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "tide-pour-over-mug"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-005",
+      "question": "What's the average rating on the Tide Pour-Over Mug?",
+      "tags": {
+        "persona": "buyer",
+        "category": "reviews",
+        "difficulty": "multi-fact",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "tide-pour-over-mug"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-006",
+      "question": "Can I buy the Carryall Card Wallet in Espresso today?",
+      "tags": {
+        "persona": "buyer",
+        "category": "inventory",
+        "difficulty": "multi-fact",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "carryall-card-wallet"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-007",
+      "question": "How many cards does the Carryall Card Wallet hold and what's it made of?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "multi-fact",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "carryall-card-wallet"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-008",
+      "question": "Do you sell the Field Belt in a 36 inch size?",
+      "tags": {
+        "persona": "buyer",
+        "category": "inventory",
+        "difficulty": "direct",
+        "expects_refusal": true
+      },
+      "expected_slugs": [
+        "field-belt"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-009",
+      "question": "What's the brass-buckled Field Belt made from and how wide is it?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "multi-fact",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "field-belt"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-010",
+      "question": "Are the Morning Linen Napkins machine washable, and how many come in a set?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "multi-fact",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "morning-linen-napkins"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-011",
+      "question": "How much is the Harbor Throw and what are its dimensions?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "multi-fact",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "harbor-throw"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-012",
+      "question": "Tell me about the End-Grain Cutting Board \u2014 wood, size, and is it reversible?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "multi-fact",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "grain-cutting-board"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-013",
+      "question": "I want the Nara Serving Spoons \u2014 are they available?",
+      "tags": {
+        "persona": "buyer",
+        "category": "inventory",
+        "difficulty": "direct",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "nara-serving-spoons"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-014",
+      "question": "How long does the Hearthlight candle burn and what does it smell like?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "multi-fact",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "hearthlight-candle"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-015",
+      "question": "Do you have a lavender-scented candle?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "direct",
+        "expects_refusal": true
+      },
+      "expected_slugs": [
+        "hearthlight-candle"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-016",
+      "question": "Is the Salve Hand Balm free of synthetic fragrance?",
+      "tags": {
+        "persona": "buyer",
+        "category": "catalog",
+        "difficulty": "direct",
+        "expects_refusal": false
+      },
+      "expected_slugs": [
+        "salve-hand-balm"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    },
+    {
+      "id": "EVAL-025",
+      "question": "I bought an opened jar of the Salve Hand Balm and want to return it because I didn't like the scent \u2014 can I?",
+      "tags": {
+        "persona": "support",
+        "category": "returns",
+        "difficulty": "combine",
+        "expects_refusal": true
+      },
+      "expected_slugs": [
+        "salve-hand-balm"
+      ],
+      "retrieved_topk": [],
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0
+    }
+  ]
+}
