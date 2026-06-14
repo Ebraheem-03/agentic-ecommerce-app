@@ -40,6 +40,19 @@ class Settings(BaseSettings):
     # change) once a real provider is registered in app/services/embeddings.py.
     embed_provider: str = "stub"
 
+    # Eval JUDGE selector (US-E7-00, ADR-0030). The RAGAS harness's LLM-judge metrics
+    # (response relevancy, faithfulness) run behind a Judge seam. "deterministic"
+    # selects the CI-safe lexical-overlap stub so the harness runs with NO LLM keys.
+    # NOTE: the eval judge is SEPARATE from the runtime PRODUCT LLM (Groq/Gemini
+    # free-tier) — per CLAUDE.md it may be Claude. Flip to e.g. "claude" once a real
+    # judge is registered in app/eval/judge.py::_JUDGES (defaults to claude-opus-4-8).
+    eval_judge: str = "deterministic"
+
+    # Eval ANSWERER selector (US-E7-00). The judge metrics need an `answer` per golden
+    # question; with no live agent runtime yet, "stub" selects the CI-safe stub
+    # answerer (app/eval/answerer.py). Flip to the real agent answerer once it lands.
+    eval_answerer: str = "stub"
+
     # Browser CORS allow-list for the API. Defaults to the local Next.js dev origin;
     # override via `HEARTH_CORS_ORIGINS` as a comma-separated list of origins, e.g.
     # `HEARTH_CORS_ORIGINS=https://app.example.com,https://admin.example.com`.
