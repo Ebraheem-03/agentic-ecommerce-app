@@ -110,6 +110,38 @@ This file + validator prove the set is **well-formed and seed-resolvable**. It d
 4. Wire the runner into CI alongside the E2E gate; block agent merges to `dev` on any
    metric below threshold or any refusal regression.
 
+## Retrieval smoke (US-QA-D10) — the no-LLM retrieval-half baseline
+
+Before the RAGAS judge half exists, `api/tests/qa/test_retrieval_smoke.py` runs a
+**deterministic, no-LLM** retrieval-quality smoke against the LIVE keyword `GET /search`
+(Postgres FTS, `ts_rank`) over the seeded catalog. It is the *retrieval half* of RAGAS —
+context **precision@k** / **recall@k** computed by checking whether each golden question's
+ground-truth `source_docs` products appear in the top-k results — with **no judge LLM**.
+
+- **Scope:** only **product-grounded** golden items (those whose `source_docs` cite a
+  `product` slug or a `variant` sku → its product). **Policy** source_docs are NOT in the
+  product catalog; policy/RAG retrieval is Echo's agent-RAG surface (Week-4) and is
+  *excluded*, not failed. v0: 17/25 items in scope, 8 policy-only excluded.
+- **Metrics:** `recall@k = |relevant ∩ topk| / |relevant|`,
+  `precision@k = |relevant ∩ topk| / min(k, n_retrieved)`, k=5. Means aggregated.
+- **It is a SMOKE, not a CI gate.** `websearch_to_tsquery` ANDs every token of the input,
+  so feeding a raw natural-language *question* matches ~nothing: **keyword question-recall
+  is ~0 by construction**. That is the captured finding — the exact gap semantic retrieval
+  (Echo, Decision-4) closes — not a failure. The test asserts only that the smoke RAN and
+  produced/logged well-formed scores; a separate liveness anchor proves keyword search DOES
+  recall the right product from a distinctive single *term*.
+- **Captured artifact:** `docs/qa/eval/results/retrieval-smoke-<date>.json` (+ a stable
+  `retrieval-smoke-latest.json`): scores, scope counts, per-item precision/recall, and the
+  full failing-sample log (question + expected slugs + retrieved top-k).
+
+**Hand-off to Echo (Week-4):** this smoke is the retrieval-half baseline. When semantic /
+pgvector retrieval lands (the `mode=semantic` swap), re-run the SAME smoke and compare
+against `retrieval-smoke-latest.json` — the question-level recall it lifts off ~0 is the
+measure of the semantic win. The faithfulness / answer-relevancy half (the judge-LLM gates
+in the table above) is the other half Echo adds on top.
+
+Run: `cd api && DATABASE_URL=... pytest tests/qa/test_retrieval_smoke.py -s -v`
+
 ## Validator
 
 `api/tests/qa/test_golden_eval.py`:
