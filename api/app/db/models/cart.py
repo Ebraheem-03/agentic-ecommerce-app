@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     CheckConstraint,
@@ -18,6 +19,10 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.db.models.catalog import Variant
+
 from app.db.models._shared import (
     NOW_DEFAULT,
     created_at_col,
@@ -76,6 +81,10 @@ class CartItem(Base):
     )
 
     cart: Mapped[Cart] = relationship(back_populates="items")
+    # Read-only nav to the ordered variant (for cart projection: price/sku/options +
+    # its product/inventory). One-directional + viewonly so it adds no DDL/migration
+    # and never participates in writes — the FK ``variant_id`` is the source of truth.
+    variant: Mapped[Variant] = relationship(viewonly=True, lazy="raise")
 
     __table_args__ = (
         CheckConstraint("qty > 0", name="ck_cart_items_qty_pos"),

@@ -89,7 +89,7 @@ You are **Atlas**, the orchestrator (full brief: `.claude/agents/atlas.md`). **W
 - **PR #1** (`integration/foundations` → `dev`): 9/9 green incl. GitGuardian. Held for the Day-7 gate.
 
 ## 🔧 In progress
-- _nothing mid-flight_ — Day 10 closed on `integration/backend` (`eecc97a`), pushed. Day 11 (cart & orders) not started.
+- **US-E4-09** cart endpoints `[AFK]` (Orion) — **DONE on `feature/cart-endpoints`, awaiting Atlas integration.** All 4 `/cart` handlers live over new `app/services/cart.py` (auth via `require_user`): GET lazy-creates the single open cart; POST upserts/increments (201, `out_of_stock` 409 on cumulative over-request); PATCH sets absolute qty (qty=0→422); DELETE removes; cross-user line access→404; no inventory mutation (reservation = US-E4-10). `CartItem` gained a read-only `viewonly` `variant` nav (ORM metadata only, **no migration**). No new ErrorCodes. ruff✓ mypy(strict,57)✓ **pytest 118 passed** (103 prior + 15 new). **US-E4-10** orders/payment `[REVIEW]` — not started.
 
 ## ⛔ Blocked
 - _nothing_
