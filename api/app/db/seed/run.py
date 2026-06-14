@@ -2,7 +2,10 @@
 
 Writes the content from ``data.py`` through the Story-1 ORM models, computes the
 ``products.rating_avg/rating_count`` rollups, and generates ``embeddings`` rows for
-products and policies via the ``embeddings.embed_text`` stub (Echo replaces later).
+products and policies through the pluggable embedding provider seam in
+``app.services.embeddings`` (``refresh_product_embedding`` for products; the same
+``upsert_embedding`` for policies). The active provider defaults to the deterministic
+``StubEmbedder``; Echo swaps in a real model via ``EMBED_PROVIDER`` (ADR-0026).
 
 IDEMPOTENT by design: every entity is upserted on its natural key (user email-live,
 store slug, product slug, variant sku, embedding (source_type, source_id, chunk_index)),
@@ -31,8 +34,13 @@ from app.db.models import (
     Variant,
 )
 from app.db.seed import data
-from app.db.seed.embeddings import SEED_STUB_MODEL, embed_text
 from app.db.session import session_scope
+from app.services.embeddings import (
+    Embedder,
+    get_embedder,
+    refresh_product_embedding,
+    upsert_embedding,
+)
 
 # Single deterministic test-mode password for every seeded persona. Env-derived so no
 # literal credential is committed (GitGuardian scans full history) — the default MUST
@@ -187,35 +195,14 @@ def _upsert_policy(s: Session, p: data.PolicySeed, stores: dict[str, Store]) -> 
     return existing
 
 
-def _upsert_embedding(
-    s: Session, source_type: str, source_id: str, chunk_index: int, text: str
-) -> None:
-    """Upsert one embedding row on (source_type, source_id, chunk_index).
-
-    Re-embeds in place on rerun so a future EMBED_DIM/model change is picked up.
-    """
-    existing = s.scalar(
-        select(Embedding).where(
-            Embedding.source_type == source_type,
-            Embedding.source_id == source_id,
-            Embedding.chunk_index == chunk_index,
-        )
-    )
-    vector = embed_text(text)
-    if existing is None:
-        existing = Embedding(
-            source_type=source_type,
-            source_id=source_id,
-            chunk_index=chunk_index,
-        )
-        s.add(existing)
-    existing.chunk_text = text
-    existing.embedding = vector
-    existing.model = SEED_STUB_MODEL
-
-
 def seed(session: Session) -> dict[str, int]:
-    """Run the full idempotent seed within ``session``; return inserted/updated counts."""
+    """Run the full idempotent seed within ``session``; return inserted/updated counts.
+
+    Embeddings go through the same provider seam future write handlers use: products via
+    ``refresh_product_embedding`` (rebuilds the doc from the persisted product), policies
+    via ``upsert_embedding``. One ``Embedder`` instance is shared across the run.
+    """
+    embedder: Embedder = get_embedder()
     users = _upsert_users(session)
     stores: dict[str, Store] = {}
 
@@ -231,21 +218,22 @@ def seed(session: Session) -> dict[str, int]:
                 _upsert_inventory(session, variant, v)
             _upsert_image(session, product, prod_seed)
             _upsert_reviews(session, product, prod_seed)
+            session.flush()
 
-            # Product embedding: one chunk of title + description.
-            _upsert_embedding(
-                session,
-                "product",
-                product.id,
-                0,
-                f"{product.title}. {product.description}",
-            )
+            # Product embedding: rebuilt from the persisted product (title/description/
+            # category/attributes/variants) via the reusable refresh path.
+            refresh_product_embedding(session, product.id, embedder=embedder)
 
     for policy_seed in data.POLICIES:
         policy = _upsert_policy(session, policy_seed, stores)
         # Policy embedding: one chunk of title + body (the RAG retrieval unit).
-        _upsert_embedding(
-            session, "policy", policy.id, 0, f"{policy.title}\n{policy.body}"
+        upsert_embedding(
+            session,
+            source_type="policy",
+            source_id=policy.id,
+            chunk_index=0,
+            text=f"{policy.title}\n{policy.body}",
+            embedder=embedder,
         )
 
     session.flush()
