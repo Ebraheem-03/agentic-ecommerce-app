@@ -110,8 +110,8 @@ def test_cors_disallowed_origin_is_not_echoed() -> None:
 def test_envelope_is_app_wide_on_a_non_auth_group() -> None:
     """A stub from a *different* group than ``test_error_envelope`` (catalog, not auth)
     still emits the canonical not_implemented envelope — proves it's app-wide, not
-    bolted onto one router."""
-    resp = client.get("/products")
+    bolted onto one router. (product list/detail are real now; reviews stay a stub.)"""
+    resp = client.get("/products/anything/reviews")
     assert resp.status_code == 501
     assert resp.json() == {
         "error": {

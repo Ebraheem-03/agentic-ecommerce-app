@@ -79,7 +79,7 @@ You are **Atlas**, the orchestrator (full brief: `.claude/agents/atlas.md`). **W
 - **PR #1** (`integration/foundations` → `dev`): 9/9 green incl. GitGuardian. Held for the Day-7 gate.
 
 ## 🔧 In progress
-- _nothing mid-flight_ — Day 9 closed on `integration/backend` (`b51f746`), pushed. Day 10 (catalog & search) not started.
+- **US-E4-06 (Day 10) catalog list/detail + inventory — DONE on `feature/catalog-endpoints`, awaiting Atlas integration.** Real handlers for `GET /products` (cursor-paginated, `category`/`store_id` filters), `GET /products/{id_or_slug}` (variants/images/inventory/rating rollup, 404 canonical), `GET /stores/{id_or_slug}`. New `app/api/pagination.py` (reusable opaque **keyset** cursor) + `app/services/catalog.py`. Inventory surfaces as `VariantOut.in_stock = (on_hand-reserved)>0` + `restock_eta_days` (seeded low-stock & OOS verified). Reviews list/create stay stubs (separate story). Repointed 2 stub-era 501 spot-checks `/products`→`/products/{id}/reviews` (flag for Juno). **ADR-0025.** Gate: ruff✓ mypy(strict,54)✓ **pytest 84 passed, 0 failed**. Not merged/pushed — Atlas integrates. US-E4-07 (search) + US-E4-08 (embeddings) not started.
 
 ## ⛔ Blocked
 - _nothing_
