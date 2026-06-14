@@ -12,10 +12,13 @@ function-calling, but the layer itself is just typed defs + a dispatcher.
 
 from __future__ import annotations
 
+from app.agent.executor import ToolResult, execute_tool
 from app.agent.tools import REGISTRY, ToolName, tool_specs
 
 __all__ = [
     "REGISTRY",
     "ToolName",
+    "ToolResult",
+    "execute_tool",
     "tool_specs",
 ]
