@@ -95,8 +95,21 @@ Then the §4 gates apply:
 
 ## What Echo must add in Week 2 to execute this
 
-This file + validator prove the set is **well-formed and seed-resolvable**. It does
-**not** run RAGAS (no agent runtime exists yet). To execute:
+> **Status (US-E7-00, Day-13): the harness now EXISTS** — `api/app/eval/` +
+> `api/tests/qa/test_ragas_harness.py`. It scores all four metrics (context precision/
+> recall + response relevancy + faithfulness) over this golden set and writes a score
+> artifact (`results/ragas-<date>.json` + `ragas-latest.json`, gitignored). The default
+> path is **deterministic + CI-safe** (no LLM keys, no network): precision/recall are
+> set-overlap math; the judge metrics run behind a `Judge` seam whose default is a
+> `DeterministicJudge` lexical stub (a *harness-exercising stub, not a semantic judge*),
+> and the per-question answer comes from a `StubAnswerer` (no live agent runtime yet).
+> **Pending keys:** a real Claude eval JUDGE (`EVAL_JUDGE`, default model
+> `claude-opus-4-8`) and the real agent ANSWERER (`EVAL_ANSWERER`) each register in one
+> place and swap with one setting — no harness change. The §4 quality gates below only
+> bind under a real judge. See **ADR-0030**.
+
+This file + validator prove the set is **well-formed and seed-resolvable**. The original
+plan to execute it (now partially DONE by the harness above):
 
 1. **Retriever** over the seeded `embeddings` (product + policy sources) returning
    chunks tagged back to product `slug` / policy `kind@store`, so retrieved contexts
