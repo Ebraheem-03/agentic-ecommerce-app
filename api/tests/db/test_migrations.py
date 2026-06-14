@@ -152,6 +152,25 @@ def test_clean_create(migration_db: tuple[Config, str]) -> None:
             == "hnsw"
         )
 
+        # --- products full-text search column + GIN index (0005) ---
+        assert (
+            _scalar(
+                conn,
+                "SELECT count(*) FROM information_schema.columns "
+                "WHERE table_name = 'products' AND column_name = 'search_tsv'",
+            )
+            == 1
+        )
+        assert (
+            _scalar(
+                conn,
+                "SELECT am.amname FROM pg_class c "
+                "JOIN pg_am am ON am.oid = c.relam "
+                "WHERE c.relname = 'ix_products_search_tsv'",
+            )
+            == "gin"
+        )
+
         # --- key constraints (a representative, load-bearing few) ---
         # partial-unique: at most one OPEN cart per user
         assert (
@@ -219,4 +238,4 @@ def test_rollback_to_base_then_roundtrip(migration_db: tuple[Config, str]) -> No
     with open_conn(dsn) as conn:
         assert _app_tables(conn) == EXPECTED_TABLES
         assert _enum_types(conn) == EXPECTED_ENUMS
-        assert _scalar(conn, "SELECT version_num FROM alembic_version") == "0004_email_verified"
+        assert _scalar(conn, "SELECT version_num FROM alembic_version") == "0005_product_search"
