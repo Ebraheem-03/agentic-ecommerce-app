@@ -9,6 +9,7 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
+    Computed,
     DateTime,
     ForeignKey,
     Index,
@@ -19,7 +20,7 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -97,6 +98,22 @@ class Product(Base):
     created_at: Mapped[datetime] = created_at_col()
     updated_at: Mapped[datetime] = updated_at_col()
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # DB-maintained full-text vector (migration 0005, STORED generated column). Marked
+    # ``Computed`` so SQLAlchemy never writes it (no INSERT/UPDATE of search_tsv); keyword
+    # search (US-E4-07) only reads it via @@ / ts_rank. Deferred so it isn't loaded on
+    # ordinary catalog reads (it isn't a projected DTO field). The expression here mirrors
+    # migration 0005 — the migration remains the source of truth for the DDL.
+    search_tsv: Mapped[str | None] = mapped_column(
+        TSVECTOR,
+        Computed(
+            "setweight(to_tsvector('english', coalesce(title, '')), 'A') || "
+            "setweight(to_tsvector('english', coalesce(category, '')), 'B') || "
+            "setweight(to_tsvector('english', coalesce(description, '')), 'C')",
+            persisted=True,
+        ),
+        nullable=True,
+        deferred=True,
+    )
 
     store: Mapped[Store] = relationship(back_populates="products")
     reviews: Mapped[list[Review]] = relationship(
@@ -109,7 +126,13 @@ class Product(Base):
         back_populates="product", cascade="all, delete-orphan"
     )
 
-    __table_args__ = (Index("ix_products_store_id", "store_id"),)
+    __table_args__ = (
+        Index("ix_products_store_id", "store_id"),
+        # GIN index over the FTS column (migration 0005) — declared here so the ORM
+        # metadata matches the migrated DB (model<->schema parity). ``postgresql_using``
+        # makes it a real GIN index, not a btree.
+        Index("ix_products_search_tsv", "search_tsv", postgresql_using="gin"),
+    )
 
 
 class Review(Base):

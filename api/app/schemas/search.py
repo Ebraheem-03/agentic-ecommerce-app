@@ -1,19 +1,20 @@
 """Search request/response.
 
 v0 is keyword search over the catalog (title/description/category). The response
-shape is retrieval-mode agnostic so semantic/pgvector retrieval (Echo, Week-2) can
+shape is retrieval-mode agnostic so semantic/pgvector retrieval (Echo, Week-4) can
 plug in WITHOUT changing the contract — we expose a per-result ``score`` and a
-top-level ``mode`` discriminator. We do NOT bake an embedding dimension here.
+``mode`` discriminator (carried in the list ``meta``). We do NOT bake an embedding
+dimension here.
 """
 
 from __future__ import annotations
 
 from enum import StrEnum
 
-from pydantic import Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.catalog import ProductSummary
-from app.schemas.envelope import CamelModel
+from app.schemas.envelope import CamelModel, PageMeta
 
 
 class SearchMode(StrEnum):
@@ -32,8 +33,30 @@ class SearchResult(CamelModel):
     )
 
 
-class SearchResponse(CamelModel):
-    """Body of GET /search. Wrapped in ListEnvelope[SearchResult] at the route."""
+class SearchMeta(PageMeta):
+    """List meta for GET /search: the page meta plus the retrieval discriminator.
 
-    mode: SearchMode = SearchMode.keyword
-    query: str
+    Carries ``mode`` (``SearchMode``) alongside the standard cursor/limit/total so the
+    client/agent knows which retrieval path served the page. Semantic/pgvector retrieval
+    (Echo, Week-4) reuses this exact shape — it only changes the ``mode`` value, never the
+    contract (contract-v0 Decision-4).
+    """
+
+    mode: SearchMode = Field(
+        default=SearchMode.keyword,
+        description="Retrieval path that served these results (keyword v0).",
+    )
+
+
+class SearchEnvelope(BaseModel):
+    """Success envelope for GET /search: ``{data: SearchResult[], meta: SearchMeta}``.
+
+    Mirrors the generic ``ListEnvelope`` but pins ``meta`` to ``SearchMeta`` so the
+    retrieval ``mode`` discriminator surfaces in the response. Keeping the ``{data, meta}``
+    shape means semantic/hybrid retrieval is a ``mode``-value change, not a contract change.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    data: list[SearchResult]
+    meta: SearchMeta
