@@ -32,6 +32,14 @@ class Settings(BaseSettings):
     # migration. Default 768 = Gemini text-embedding-004.
     embed_dim: int = 768
 
+    # Embedding PROVIDER selector. ECHO COORDINATION POINT (Week-4, ADR-0026):
+    # the live embedding model is still an open human decision tied to the
+    # free-tier Groq/Gemini key. Until that lands, "stub" selects the
+    # deterministic, content-derived StubEmbedder so the seed + retrieval
+    # plumbing are testable. Echo flips this to e.g. "gemini" (one env/config
+    # change) once a real provider is registered in app/services/embeddings.py.
+    embed_provider: str = "stub"
+
     # Browser CORS allow-list for the API. Defaults to the local Next.js dev origin;
     # override via `HEARTH_CORS_ORIGINS` as a comma-separated list of origins, e.g.
     # `HEARTH_CORS_ORIGINS=https://app.example.com,https://admin.example.com`.
