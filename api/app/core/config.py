@@ -71,8 +71,12 @@ class Settings(BaseSettings):
     # Current Groq free-tier model (2026-06). Llama 3.3 70B Versatile — solid tool-calling
     # + structured-output support, the default for intent classification + the agent loop.
     groq_model: str = "llama-3.3-70b-versatile"
-    # Gemini fallback model — fast, free-tier, tool-calling capable.
-    gemini_model: str = "gemini-2.0-flash"
+    # Gemini fallback model — fast, free-tier, tool-calling capable. Uses the
+    # `*-latest` alias: a live-key smoke (Day 15) showed `gemini-2.0-flash` carries a
+    # 0 free-tier quota on a fresh AI-Studio key while `gemini-flash-latest` serves
+    # (and `gemini-1.5-flash` is retired/404). Alias = pragmatic for free-tier; pin a
+    # dated version if/when this account gets a paid quota.
+    gemini_model: str = "gemini-flash-latest"
 
     # Browser CORS allow-list for the API. Defaults to the local Next.js dev origin;
     # override via `HEARTH_CORS_ORIGINS` as a comma-separated list of origins, e.g.
