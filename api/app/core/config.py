@@ -44,6 +44,15 @@ class Settings(BaseSettings):
     # change) once a real provider is registered in app/services/embeddings.py.
     embed_provider: str = "stub"
 
+    # Embedding MODEL name for the hosted Gemini provider (US-E5-04b, ADR-0032). Only
+    # used when EMBED_PROVIDER=gemini; reuses `gemini_api_key`. As-built: a Day-15 live
+    # smoke showed `gemini-embedding-001` serves on the free tier and `text-embedding-004`
+    # is RETIRED (404 on v1beta, same fate as `gemini-1.5-flash` chat). So we ship
+    # `gemini-embedding-001` with MRL truncation to `embed_dim` (768) — which matches the
+    # vector(768) column + HNSW vector_cosine_ops index. MRL truncation un-normalizes, so
+    # GeminiEmbedder L2-normalizes after truncation. ADR-0032 records the as-built choice.
+    embed_model: str = "gemini-embedding-001"
+
     # Eval JUDGE selector (US-E7-00, ADR-0030). The RAGAS harness's LLM-judge metrics
     # (response relevancy, faithfulness) run behind a Judge seam. "deterministic"
     # selects the CI-safe lexical-overlap stub so the harness runs with NO LLM keys.
