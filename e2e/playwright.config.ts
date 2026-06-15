@@ -11,8 +11,18 @@ const localEnv = resolve(__dirname, ".env");
 loadEnv({ path: existsSync(localEnv) ? localEnv : resolve(__dirname, ".env.example") });
 
 // Base URLs the suite targets. Documented in e2e/.env.example.
-export const WEB_BASE_URL = process.env.WEB_BASE_URL ?? "http://localhost:3000";
+export const WEB_BASE_URL = process.env.WEB_BASE_URL ?? "http://localhost:3100";
 export const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:8000";
+
+// The web app under test. Pinned to 3100 (not the dev-default 3000) so the
+// self-booted `webServer` never collides with a developer's running `next dev`.
+const WEB_PORT = Number(new URL(WEB_BASE_URL).port || "3100");
+const WEB_DIR = resolve(__dirname, "..", "web");
+
+// The server-free smoke (US-QA-D01, `@smoke`) must keep CI green with NO app up.
+// `e2e:smoke` sets E2E_NO_WEBSERVER=1 so Playwright does NOT boot the web app for
+// that lane. The browser smoke (US-QA-D18, `@web`) self-boots `next build && start`.
+const SKIP_WEBSERVER = !!process.env.E2E_NO_WEBSERVER;
 
 export default defineConfig({
   testDir: "./tests",
@@ -29,11 +39,34 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   projects: [
+    // US-QA-D18 acceptance: the browser smoke must run on desktop AND mobile.
+    // Two projects = two real viewport/UA matrices over the same specs.
     {
-      name: "chromium",
+      name: "desktop-chromium",
       use: { ...devices["Desktop Chrome"] },
     },
+    {
+      name: "mobile-chromium",
+      // Pixel 5 = mobile Chromium (393×851, touch, mobile UA). Keeps the engine
+      // chromium-only so a single `playwright install chromium` covers both lanes
+      // in the sandbox/CI; the matrix difference that matters here is the viewport.
+      use: { ...devices["Pixel 5"] },
+    },
   ],
-  // NOTE: no `webServer` block yet — Day 1 smoke runs WITHOUT a live server.
-  // US-QA-D03 will add `webServer` (spin up web + api) for real navigation specs.
+  // Self-boot the Next.js app so the suite is key-free / backend-free: it renders
+  // static/SSR routes, auth screens, and the shell without a live API (the shell
+  // degrades to signed-out when /auth/me is unreachable — exactly this scenario).
+  // Skipped for the `@smoke` lane (E2E_NO_WEBSERVER=1) to preserve the Day-1
+  // "smoke stays green with no server" invariant (ADR-0012).
+  webServer: SKIP_WEBSERVER
+    ? undefined
+    : {
+        command: `npm run build && npm run start -- --port ${WEB_PORT}`,
+        cwd: WEB_DIR,
+        url: WEB_BASE_URL,
+        timeout: 180_000,
+        reuseExistingServer: !process.env.CI,
+        stdout: "pipe",
+        stderr: "pipe",
+      },
 });

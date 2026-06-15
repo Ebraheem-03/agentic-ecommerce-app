@@ -187,6 +187,48 @@ the 7, but their specs select these IDs:
 
 ---
 
+## Auth screens (`login-*`, `register-*`) — US-QA-D18
+
+Sign-in / create-account screens (the `(auth)` route group, minimal chrome). Forms
+do client-side validation, then POST to the `/api/auth/*` route handlers. Error
+regions are `role="alert"` rendered **on demand** (an empty live region is an
+a11y anti-pattern), so a spec triggers them via submit rather than asserting at rest.
+
+| Element | `data-testid` | Notes |
+|---|---|---|
+| Login page root | `login-page` | "Landed on sign-in". |
+| Login form | `login-form` | `noValidate`; client-validates then POSTs. |
+| Email field | `login-email` | `<label htmlFor>`-associated (a11y A6). |
+| Password field | `login-password` | Associated label; `type=password`. |
+| Submit | `login-submit` | — |
+| Form error region | `login-error` | `role="alert"`, conditional (on submit failure). |
+| Register page root | `register-page` | "Landed on create-account". |
+| Register form | `register-form` | — |
+| Name field | `register-name` | Associated label. |
+| Email field | `register-email` | Associated label. |
+| Password field | `register-password` | Associated label + hint (`register-password-hint`). |
+| Role radio — buyer | `register-role-buyer` | Default selection (`RegisterRequest.role`). |
+| Role radio — seller | `register-role-seller` | — |
+| Submit | `register-submit` | — |
+| Form error region | `register-error` | `role="alert"`, conditional. |
+
+## App-shell controls (`nav-*`) — US-QA-D18
+
+Cross-screen shell controls (like `agent-*`, stable wherever the `(shop)` shell
+renders). The shell degrades to signed-out when `/auth/me` is unreachable.
+
+| Element | `data-testid` | Notes |
+|---|---|---|
+| Account menu trigger | `nav-account-menu` | Shown when signed in. |
+| Sign-in button | `nav-sign-in` | Shown when signed out. |
+| Register / Join button | `nav-register` | Shown when signed out. |
+| Sign-out item | `nav-sign-out` | Inside the account menu. |
+| Mobile nav trigger | `nav-mobile-trigger` | Collapsed nav on mobile viewport. |
+
+> Beyond the home screen, each route exposes its page-root id from the screen
+> sections above (`search-page`, `cart-page`, `checkout-page`, `order-status-page`,
+> `seller-dashboard-page`) — the D18 route-health smoke asserts each renders.
+
 ## Change policy
 
 - Adding a spec that needs a new anchor → add the id **here in the same PR**.

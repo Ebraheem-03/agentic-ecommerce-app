@@ -113,4 +113,39 @@ export const TID = {
     guardrailEditor: "admin-guardrail-editor",
     guardrailSave: "admin-guardrail-save",
   },
+  // Auth screens (US-QA-D18). Login + register forms and their labelled fields.
+  auth: {
+    loginPage: "login-page",
+    loginForm: "login-form",
+    loginEmail: "login-email",
+    loginPassword: "login-password",
+    loginSubmit: "login-submit",
+    loginError: "login-error",
+    registerPage: "register-page",
+    registerForm: "register-form",
+    registerName: "register-name",
+    registerEmail: "register-email",
+    registerPassword: "register-password",
+    registerRoleBuyer: "register-role-buyer",
+    registerRoleSeller: "register-role-seller",
+    registerSubmit: "register-submit",
+    registerError: "register-error",
+  },
+  // Page-root markers for routes beyond the home screen (US-QA-D18 route health).
+  page: {
+    search: "search-page",
+    cart: "cart-page",
+    checkout: "checkout-page",
+    orderStatus: "order-status-page",
+    seller: "seller-dashboard-page",
+  },
+  // App-shell controls registered by Iris's foundation (US-QA-D18). The shell is
+  // cross-screen like `agent-*`; these IDs are stable wherever the shell renders.
+  nav: {
+    accountMenu: "nav-account-menu",
+    signIn: "nav-sign-in",
+    register: "nav-register",
+    signOut: "nav-sign-out",
+    mobileTrigger: "nav-mobile-trigger",
+  },
 } as const;
