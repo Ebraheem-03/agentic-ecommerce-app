@@ -9,9 +9,18 @@ import { RecommendationCard } from "@/components/agent/RecommendationCard";
 import { CitationIcon, SendIcon } from "@/components/agent/agent-icons";
 
 /**
- * The Ember conversation body — message list + composer. Shared verbatim by the
- * desktop dock and the mobile sheet, so every `agent-*` testid is stable across
- * viewports (ADR-0036). Reads the streaming state machine from `useAgent`.
+ * The Ember conversation body — message list + composer. This is the single
+ * conversation surface for the conversation-first `/search` route (revised
+ * ADR-0036): the user types (`agent-chat-input`), Ember streams the turn
+ * (thinking → token-by-token → citations), and `done.recommendations[]` render
+ * as generative cards INLINE in the reply. There is exactly one of these in the
+ * DOM, so every `agent-*` testid is unambiguous for QA selectors.
+ *
+ * The composer (`agent-chat-input` / `agent-chat-send`) is the page's PRIMARY
+ * query entry. A thin keyword affordance in the page header carries the
+ * `search-input` / `search-submit` testids (it pushes `?q=` which seeds a turn),
+ * so both registries resolve to distinct, unambiguous nodes — `data-testid`
+ * holds a single value per element.
  *
  * Rendered states: user turn, assistant turn (thinking → streaming → done),
  * citations, recommendation cards + reason, clarify prompt, refusal notice,
@@ -72,7 +81,7 @@ export function AgentConversation({
         aria-label="Conversation with Ember, the Hearth concierge"
         aria-live="polite"
         tabIndex={0}
-        className="flex flex-1 flex-col gap-3.5 overflow-y-auto p-[18px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
+        className="flex flex-1 flex-col gap-4 overflow-y-auto px-1 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset sm:px-2"
       >
         {isEmpty ? (
           <EmptyState onPick={submit} />
@@ -85,7 +94,9 @@ export function AgentConversation({
 
       <form
         onSubmit={onSubmit}
-        className="flex items-end gap-2.5 border-t border-border bg-surface p-3"
+        role="search"
+        aria-label="Ask Ember or search the catalogue"
+        className="sticky bottom-0 mt-3 flex items-end gap-2.5 rounded-2xl border border-border bg-surface/95 p-3 shadow-[0_1px_2px_rgba(27,22,17,.04),0_-8px_24px_-18px_rgba(27,22,17,.18)] backdrop-blur-sm"
       >
         <textarea
           data-testid="agent-chat-input"
@@ -94,14 +105,14 @@ export function AgentConversation({
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={onKeyDown}
           disabled={busy}
-          placeholder="Describe what you’re looking for…"
-          aria-label="Message Ember, the Hearth concierge"
-          className="max-h-32 min-h-[44px] flex-1 resize-none rounded-xl border border-border bg-surface-muted px-3.5 py-2.5 text-small text-text placeholder:text-n-400 transition-colors focus-visible:border-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-strong/40 disabled:opacity-60"
+          placeholder="Ask Ember, or search makers and goods…"
+          aria-label="Ask Ember or search the catalogue"
+          className="max-h-40 min-h-[44px] flex-1 resize-none rounded-xl border border-border bg-surface-muted px-3.5 py-2.5 text-body text-text placeholder:text-n-400 transition-colors focus-visible:border-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-strong/40 disabled:opacity-60"
         />
         <button
           type="submit"
           data-testid="agent-chat-send"
-          aria-label="Send message"
+          aria-label="Send"
           disabled={busy || draft.trim().length === 0}
           className="grid h-11 w-11 flex-none place-items-center rounded-xl bg-accent text-n-900 transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -114,22 +125,23 @@ export function AgentConversation({
 
 function EmptyState({ onPick }: { onPick: (text: string) => void }): JSX.Element {
   return (
-    <div className="flex flex-col gap-3.5">
+    <div className="flex flex-col gap-4">
       <div
         data-testid="agent-message-assistant"
-        className="max-w-[88%] self-start rounded-[14px_14px_14px_4px] bg-accent-tint px-3.5 py-3 text-small leading-relaxed text-text"
+        className="max-w-[80%] self-start rounded-[16px_16px_16px_4px] bg-accent-tint px-4 py-3.5 text-body leading-relaxed text-text"
       >
-        <span className="font-medium">Welcome in. I’m Ember.</span>
+        <span className="font-medium">Welcome in. I&rsquo;m Ember.</span>
         <br />
-        Tell me what you’re furnishing, gifting, or mending and I’ll recommend with reasons, grounded in the live catalogue.
+        Tell me what you&rsquo;re furnishing, gifting, or mending and I&rsquo;ll
+        recommend with reasons, grounded in the live catalogue.
       </div>
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-2">
         {STARTERS.map((s) => (
           <button
             key={s}
             type="button"
             onClick={() => onPick(s)}
-            className="self-start rounded-full border border-border bg-surface px-3.5 py-1.5 text-left text-caption text-text-muted transition-colors hover:border-accent-strong/60 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-strong"
+            className="self-start rounded-full border border-border bg-surface px-3.5 py-1.5 text-left text-small text-text-muted transition-colors hover:border-accent-strong/60 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-strong"
           >
             {s}
           </button>
@@ -150,7 +162,7 @@ function TurnView({
     return (
       <div
         data-testid="agent-message-user"
-        className="max-w-[88%] self-end rounded-[14px_14px_4px_14px] bg-brand-tint px-3.5 py-2.5 text-small leading-relaxed text-text"
+        className="max-w-[80%] self-end rounded-[16px_16px_4px_16px] bg-brand-tint px-4 py-2.5 text-body leading-relaxed text-text"
       >
         {turn.text}
       </div>
@@ -169,17 +181,17 @@ function AssistantTurnView({
   const showThinking = turn.phase === "thinking";
 
   return (
-    <div className="flex flex-col gap-2.5 self-start">
+    <div className="flex flex-col gap-3 self-start">
       {turn.text.length > 0 ? (
         <div
           data-testid="agent-message-assistant"
-          className="max-w-[88%] rounded-[14px_14px_14px_4px] bg-accent-tint px-3.5 py-3 text-small leading-relaxed text-text"
+          className="max-w-[80%] rounded-[16px_16px_16px_4px] bg-accent-tint px-4 py-3.5 text-body leading-relaxed text-text"
         >
           {turn.text}
           {turn.phase === "streaming" ? (
             <span
               aria-hidden="true"
-              className="ml-0.5 inline-block h-3.5 w-[2px] translate-y-0.5 animate-pulse bg-accent-text motion-reduce:animate-none"
+              className="ml-0.5 inline-block h-4 w-[2px] translate-y-0.5 animate-pulse bg-accent-text motion-reduce:animate-none"
             />
           ) : null}
         </div>
@@ -190,7 +202,7 @@ function AssistantTurnView({
         <div
           data-testid="agent-thinking-indicator"
           aria-live="polite"
-          className="inline-flex items-center gap-2 self-start text-caption font-medium text-accent-text"
+          className="inline-flex items-center gap-2 self-start text-small font-medium text-accent-text"
         >
           <span>Ember is thinking</span>
           <span className="inline-flex gap-1" aria-hidden="true">
@@ -207,7 +219,7 @@ function AssistantTurnView({
 
       {/* Citations — may arrive mid-stream. */}
       {turn.citations.length > 0 ? (
-        <div className="flex max-w-[88%] flex-wrap gap-1.5">
+        <div className="flex max-w-[80%] flex-wrap gap-1.5">
           {turn.citations.map((c, i) => (
             <span
               key={`${c.source_id}-${c.chunk_index}-${i}`}
@@ -218,7 +230,7 @@ function AssistantTurnView({
               <CitationIcon />
               <span className="capitalize">{c.source_type}</span>
               <span aria-hidden="true">·</span>
-              <span className="max-w-[16ch] truncate">{c.snippet}</span>
+              <span className="max-w-[20ch] truncate">{c.snippet}</span>
             </span>
           ))}
         </div>
@@ -228,7 +240,7 @@ function AssistantTurnView({
       {turn.clarify ? (
         <div
           data-testid="agent-clarify-prompt"
-          className="max-w-[88%] rounded-[12px] border border-dashed border-accent-strong/50 bg-accent-tint/50 px-3.5 py-2.5 text-small leading-relaxed text-text"
+          className="max-w-[80%] rounded-[12px] border border-dashed border-accent-strong/50 bg-accent-tint/50 px-4 py-3 text-body leading-relaxed text-text"
         >
           {turn.clarify}
         </div>
@@ -239,16 +251,16 @@ function AssistantTurnView({
         <div
           data-testid="agent-refusal-notice"
           role="note"
-          className="max-w-[88%] rounded-[12px] border border-warning/40 bg-warning-tint/60 px-3.5 py-2.5 text-small leading-relaxed text-[#7a560f]"
+          className="max-w-[80%] rounded-[12px] border border-warning/40 bg-warning-tint/60 px-4 py-3 text-body leading-relaxed text-[#7a560f]"
         >
           <span className="font-semibold">One honest note: </span>
           {turn.refusal}
         </div>
       ) : null}
 
-      {/* Recommendation cards — the grounded generative UI. */}
+      {/* Recommendation cards — the grounded generative UI, inline in the reply. */}
       {turn.recommendations.length > 0 ? (
-        <div className="flex max-w-full flex-col gap-2.5">
+        <div className="grid max-w-full gap-2.5 sm:grid-cols-2">
           {turn.recommendations.map((rec) => (
             <RecommendationCard key={rec.product_id} rec={rec} onNavigate={onNavigate} />
           ))}
@@ -259,7 +271,7 @@ function AssistantTurnView({
       {turn.error ? (
         <div
           role="alert"
-          className="max-w-[88%] rounded-[12px] border border-error/40 bg-error-tint/60 px-3.5 py-2.5 text-small leading-relaxed text-[#8a2f24]"
+          className="max-w-[80%] rounded-[12px] border border-error/40 bg-error-tint/60 px-4 py-3 text-body leading-relaxed text-[#8a2f24]"
         >
           {turn.error.message}
         </div>

@@ -4,11 +4,12 @@ import { ProductThumb } from "@/components/shop/ProductThumb";
 import { StockBadge } from "@/components/shop/StockBadge";
 
 /**
- * Home — token-truthful port of docs/brand/preview/screens/home.html. The
- * conversational concierge is no longer embedded here: per ADR-0036 it is the
- * PERSISTENT docked panel provided by the `(shop)` layout (right gutter on
- * desktop, invokable sheet on mobile). The hero CTA opens it; this page is the
- * editorial landing. Test-ids: home-page, home-hero-cta, home-featured-rail.
+ * Home — token-truthful port of docs/brand/preview/screens/home.html, the
+ * editorial landing and ENTRY to the conversation. Per the revised ADR-0036 the
+ * concierge is no longer a persistent cross-page dock; it lives on `/search`
+ * (the route IS the conversation). The hero CTA (`home-hero-cta`) navigates into
+ * `/search` to start a conversation; a featured/collection link can seed the
+ * first turn via `?q=`. Test-ids: home-page, home-hero-cta, home-featured-rail.
  */
 
 const COLLECTIONS = [

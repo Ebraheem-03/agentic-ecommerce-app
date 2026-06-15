@@ -2,9 +2,9 @@ import { cn } from "@/lib/cn";
 import { EmberMark } from "@/components/agent/agent-icons";
 
 /**
- * Concierge panel header — Ember's identity + grounded-presence line. Shared by
- * the desktop dock and the mobile sheet so the surface reads identically.
- * `as` lets the sheet render the name as the dialog title (h2) for a11y.
+ * Concierge panel header — Ember's identity + grounded-presence line. Sits atop
+ * the conversation-first `/search` column (revised ADR-0036). `action` is an
+ * optional right-aligned slot for a control.
  */
 export function AgentHeader({
   className,

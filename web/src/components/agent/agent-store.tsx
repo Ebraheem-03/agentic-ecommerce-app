@@ -19,11 +19,12 @@ import type {
 import { streamAgentTurn } from "@/lib/agent-stream";
 
 /**
- * Ember conversation store — owns the streaming state machine for the docked
- * panel. Lives at the `(shop)` layout level so the conversation PERSISTS across
- * home / search / product navigation (ADR-0036). Drives the SSE client
- * (`streamAgentTurn`) over the mock stream and reduces frames into renderable
- * turns.
+ * Ember conversation store — owns the streaming state machine for the
+ * conversation-first `/search` surface. Scoped to that route (not the layout):
+ * per the revised ADR-0036 the chat is no longer a persistent cross-page dock,
+ * so the provider mounts on `/search` and there is exactly one conversation in
+ * the DOM. Drives the SSE client (`streamAgentTurn`) over the mock stream and
+ * reduces frames into renderable turns.
  *
  * State machine per turn:
  *   idle ──submit──▶ thinking ──first token──▶ streaming
