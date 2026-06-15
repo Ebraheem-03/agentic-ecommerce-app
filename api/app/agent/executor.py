@@ -51,6 +51,7 @@ from typing import Any
 from pydantic import BaseModel, ValidationError
 from sqlalchemy.orm import Session
 
+from app.agent.guardrails import RefundTier, refund_tier
 from app.agent.tools import (
     REGISTRY,
     AddToCartInput,
@@ -96,6 +97,23 @@ class TransientToolError(Exception):
     Service code (or a test) raises this to signal "safe to retry" — e.g. a transient
     pre-effect fault. A domain ``APIError`` is NOT this and is never retried.
     """
+
+
+class HitlDeferred(Exception):  # noqa: N818 - a control-flow signal, not an error
+    """A mutating action that policy QUEUES FOR A HUMAN instead of executing (ADR-0033).
+
+    Raised by a tool executor (today: ``refund`` in the $50–$200 HITL tier) to signal "do
+    NOT mutate; this is terminal for the turn and must be audited as ``hitl_deferred``".
+    Carries the typed output to return to the caller (the refund the human would approve)
+    and a human-readable message. The dispatcher catches it, writes the audit row, and
+    returns a non-applied ``ToolResult`` — no ``Payment`` is mutated.
+    """
+
+    def __init__(self, *, output: BaseModel, message: str, status_code: int = 202) -> None:
+        super().__init__(message)
+        self.output = output
+        self.message = message
+        self.status_code = status_code
 
 
 @dataclass(frozen=True, slots=True)
@@ -153,12 +171,19 @@ def _run_with_retry(
 # --------------------------------------------------------------------------- #
 @dataclass(frozen=True, slots=True)
 class ToolResult:
-    """The outcome of a tool call: a typed output, a status, and whether it replayed."""
+    """The outcome of a tool call: a typed output, a status, the audit outcome, replay flag.
+
+    ``outcome`` lets a caller branch on what the executor actually did without re-deriving
+    it from the status code — ``applied`` (executed), or ``hitl_deferred`` (queued for a
+    human, no side effect; the refund HITL tier). A ``refused`` outcome surfaces as a raised
+    ``APIError`` instead, so it never reaches a successful ``ToolResult``.
+    """
 
     name: ToolName
     output: BaseModel
     status_code: int
     replayed: bool = False
+    outcome: AgentOutcome = AgentOutcome.applied
 
 
 # --------------------------------------------------------------------------- #
@@ -287,12 +312,20 @@ def _exec_order_status(
 def _exec_refund(
     session: Session, user: User, args: RefundInput
 ) -> tuple[BaseModel, int]:
-    """Refund the captured payment on an order (v0 thin shim — ADR-0029).
+    """Refund the captured payment on an order, gated by the tiered HITL policy (ADR-0033).
 
     Scope: the order owner OR a support/admin user. A privileged user may refund any
     order; an ordinary buyer may only refund their own (a foreign order id surfaces as
-    ``not_found``, never a leak). Marks the order's captured ``Payment`` -> refunded and
-    records the action. The full returns/refund epic (returns router still 501) is later.
+    ``not_found``, never a leak).
+
+    TIER (ADR-0033 §1), evaluated against the captured payment's ``amount_minor``:
+      * AUTO (<= $50): execute — mark the captured ``Payment`` -> refunded, return it.
+      * HITL ($50–$200): raise ``HitlDeferred`` — do NOT mutate; the dispatcher audits
+        ``hitl_deferred`` and the agent tells the user it's queued for a human.
+      * REFUSE (> $200): raise ``forbidden`` — do NOT mutate; the dispatcher audits
+        ``refused``. (An ordinary owner above the auto cap is also routed through the tier:
+        owners cannot self-approve a >$50 refund — that becomes HITL/refuse by amount.)
+    Amounts compared in MINOR units. The full returns/refund epic is later.
     """
     is_privileged = user.role in _PRIVILEGED_ROLES
     order = session.get(Order, args.order_id) if _looks_like_uuid(args.order_id) else None
@@ -311,6 +344,34 @@ def _exec_refund(
             code=ErrorCode.conflict,
             message="There's no captured payment to refund on that order.",
         )
+
+    tier = refund_tier(captured.amount_minor)
+    if tier is RefundTier.refuse:
+        # Above the HITL ceiling — hard refused, no mutation. Audited as ``refused``.
+        raise APIError(
+            status_code=403,
+            code=ErrorCode.forbidden,
+            message=(
+                "That refund amount is above what I can process. A human on the support "
+                "team needs to handle a refund this large."
+            ),
+        )
+    if tier is RefundTier.hitl:
+        # In the human-review band — queue it, do NOT mutate the Payment.
+        out = RefundOutput(
+            order_id=order.id,
+            payment=order_service._payment_out(captured),  # noqa: SLF001 — same package intent
+        )
+        raise HitlDeferred(
+            output=out,
+            message=(
+                "I've queued this refund for a human on the support team to review — it's "
+                "above the amount I can approve on my own. You'll hear back once it's "
+                "processed."
+            ),
+        )
+
+    # AUTO tier — execute.
     captured.status = PaymentStatus.refunded.value
     session.flush()
 
@@ -496,6 +557,29 @@ def execute_tool(
         output, status_code = _run_with_retry(
             _call, policy=retry, clock=clock, sleep=sleep
         )
+    except HitlDeferred as deferred:
+        # Policy queued this mutating action for a human (refund HITL tier). NO side
+        # effect was applied; audit it as ``hitl_deferred`` and return a non-applied
+        # result so the caller can tell the user it's with a human. We do NOT memoize
+        # this under the idempotency key — a retry should re-evaluate, not lock the defer.
+        _audit(
+            session,
+            name=name,
+            user=user,
+            conversation_id=conversation_id,
+            outcome=AgentOutcome.hitl_deferred,
+            payload={
+                "args": args.model_dump(mode="json"),
+                "reason": "hitl_deferred",
+                "status_code": deferred.status_code,
+            },
+        )
+        return ToolResult(
+            name=name,
+            output=deferred.output,
+            status_code=deferred.status_code,
+            outcome=AgentOutcome.hitl_deferred,
+        )
     except APIError as exc:
         # A domain refusal (or retry exhaustion). Audit + store under the idempotency key
         # so a replay re-raises the same status rather than re-running effects.
@@ -600,6 +684,7 @@ def _replay_result(
 
 __all__ = [
     "DEFAULT_RETRY",
+    "HitlDeferred",
     "RetryPolicy",
     "ToolResult",
     "TransientToolError",

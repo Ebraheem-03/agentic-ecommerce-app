@@ -66,6 +66,17 @@ class Settings(BaseSettings):
     # answerer (app/eval/answerer.py). Flip to the real agent answerer once it lands.
     eval_answerer: str = "stub"
 
+    # ---- Refund / spend guardrail tiers (US-E5-06/07, ADR-0033) ------------- #
+    # The support agent's `refund` action is gated by amount tiers, compared in MINOR
+    # units (integer cents) against the captured payment the refund would touch:
+    #   * <= REFUND_AUTO_CAP_MINOR              -> agent executes (outcome=applied)
+    #   * (auto, REFUND_HITL_CAP_MINOR]         -> queued for a human (hitl_deferred)
+    #   * >  REFUND_HITL_CAP_MINOR              -> hard refused (outcome=refused)
+    # Defaults: $50 auto cap, $200 HITL ceiling. Tunable without a code change (mirrors
+    # the embed/judge settings pattern). Owners may self-serve only within the auto cap.
+    refund_auto_cap_minor: int = 5000
+    refund_hitl_cap_minor: int = 20000
+
     # ---- Runtime PRODUCT LLM (US-E5-03/04/09, ADR-0031) --------------------- #
     # The chat model behind the product's own agents (shopping/support/merch). Both
     # Groq AND Gemini are configured; `llm_provider` flips between them with a SINGLE
