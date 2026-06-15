@@ -83,7 +83,7 @@ def _order_count(session: Session, user: User) -> int:
 @pytest.mark.parametrize(
     ("route", "confidence", "expect_text_contains"),
     [
-        ("support", 0.95, "support assistant isn't available yet"),
+        # support is now implemented (US-E5-06); merchandising stays deferred (Day 17).
         ("merchandising", 0.95, "merchandising assistant isn't available yet"),
     ],
 )
@@ -94,7 +94,7 @@ def test_deferred_routes_return_graceful_message(
     confidence: float,
     expect_text_contains: str,
 ) -> None:
-    """A confident support/merch classification hits the registered-but-deferred node."""
+    """A confident merch classification hits the registered-but-deferred node."""
     user = _user(seeded_db, handles, "buyer_primary")
     classifier = StubClassifier(IntentResult(route=route, confidence=confidence))  # type: ignore[arg-type]
     with _session(seeded_db) as session:

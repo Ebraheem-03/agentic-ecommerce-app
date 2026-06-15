@@ -68,6 +68,35 @@ class PlannerStep(BaseModel):
     reply: str = Field(default="", description="Final assistant message (when replying).")
 
 
+SupportIntent = Literal["policy", "order_status", "refund"]
+
+
+class SupportPlan(BaseModel):
+    """The support agent's decision for a turn (US-E5-06).
+
+    The support node executes deterministically off this plan (RAG retrieval, orderStatus,
+    refund-with-tiering all live in the node + executor, NOT the LLM). The brain only
+    decides WHICH of the three support intents the turn is and extracts the needed args:
+
+      * ``policy``       -> ground the answer in retrieved policy docs (the RAG path);
+      * ``order_status`` -> look up ``order_id`` via the orderStatus tool;
+      * ``refund``       -> request a refund on ``order_id`` (the executor applies the
+        HITL tier; the brain NEVER decides the tier — that's structural guardrail logic).
+
+    ``query`` is the policy-retrieval query for the ``policy`` intent (defaults to the
+    user's message). The brain cannot set identity/scope/amount — those are closed over.
+    """
+
+    intent: SupportIntent = Field(description="Which support capability this turn needs.")
+    query: str = Field(
+        default="", description="Policy-search query (for the policy intent)."
+    )
+    order_id: str = Field(
+        default="", description="Order id (for order_status / refund intents)."
+    )
+    reason: str = Field(default="", description="Optional refund reason / short rationale.")
+
+
 # --------------------------------------------------------------------------- #
 # Protocols — the injection seam.                                              #
 # --------------------------------------------------------------------------- #
@@ -79,6 +108,10 @@ class ShoppingPlanner(Protocol):
     def plan(
         self, history: list[BaseMessage], tool_results: list[str]
     ) -> PlannerStep: ...
+
+
+class SupportBrain(Protocol):
+    def plan(self, history: list[BaseMessage]) -> SupportPlan: ...
 
 
 # --------------------------------------------------------------------------- #
@@ -142,13 +175,50 @@ class LLMShoppingPlanner:
         return result
 
 
+_SUPPORT_SYSTEM = SystemMessage(
+    content=(
+        "You are Ember's support assistant. Decide which ONE capability the user's latest "
+        "message needs: 'policy' (returns, shipping, payments, care, how-it-works "
+        "questions answered from store/platform policy), 'order_status' (where is my "
+        "order / its status), or 'refund' (the user wants money back on an order). For "
+        "'policy', set `query` to a concise search query for the policy docs. For "
+        "'order_status'/'refund', set `order_id` if the user gave one. NEVER decide "
+        "whether a refund is allowed or how large — only classify the intent; the system "
+        "enforces refund limits and human review. Ground every answer in retrieved policy "
+        "text; never invent policy."
+    )
+)
+
+
+class LLMSupportBrain:
+    """Classify the support turn into a ``SupportPlan`` via structured output (default brain).
+
+    Like the other brains, the REASONING is the LLM's but the ACTION is the node's: the
+    node runs RAG / orderStatus / refund off this plan. The brain cannot set identity,
+    scope, or a refund amount/tier — those are closed over from request context + enforced
+    by the executor's guardrails, never by model output.
+    """
+
+    def __init__(self, model: BaseChatModel) -> None:
+        self._model = model.with_structured_output(SupportPlan)
+
+    def plan(self, history: list[BaseMessage]) -> SupportPlan:
+        result = self._model.invoke([_SUPPORT_SYSTEM, *history])
+        assert isinstance(result, SupportPlan)
+        return result
+
+
 __all__ = [
     "IntentClassifier",
     "IntentResult",
     "LLMIntentClassifier",
     "LLMShoppingPlanner",
+    "LLMSupportBrain",
     "PlannerStep",
     "Route",
     "ShoppingPlanner",
+    "SupportBrain",
+    "SupportIntent",
+    "SupportPlan",
     "ToolCall",
 ]

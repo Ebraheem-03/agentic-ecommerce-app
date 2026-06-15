@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -55,6 +55,7 @@ class TurnResult:
     action: dict[str, Any] | None
     awaiting_approval: bool
     approval_payload: dict[str, Any] | None
+    citations: list[dict[str, Any]] = field(default_factory=list)
 
 
 def _pending_interrupt(graph: Any, config: dict[str, Any]) -> dict[str, Any] | None:
@@ -161,6 +162,7 @@ def _finalize(
     """Persist the assistant message and package the terminal result."""
     final_text = result.get("final_text", "")
     action = result.get("action")
+    citations = result.get("citations") or []
     persistence.append_message(
         session,
         conversation_id=conversation_id,
@@ -173,6 +175,7 @@ def _finalize(
         action=action,
         awaiting_approval=False,
         approval_payload=None,
+        citations=citations,
     )
 
 
@@ -217,7 +220,7 @@ def stream_turn(
     if result.awaiting_approval and result.approval_payload is not None:
         yield _sse("approval", result.approval_payload)
 
-    yield _sse("citations", [])
+    yield _sse("citations", result.citations)
 
     action_out: AgentActionOut | None = None
     if result.action is not None:
