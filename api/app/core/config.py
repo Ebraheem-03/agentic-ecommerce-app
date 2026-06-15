@@ -66,6 +66,14 @@ class Settings(BaseSettings):
     # answerer (app/eval/answerer.py). Flip to the real agent answerer once it lands.
     eval_answerer: str = "stub"
 
+    # Eval JUDGE model + key for the live Claude judge (US-QA-D16, ADR-0033 §3). Only used
+    # when EVAL_JUDGE=claude (the human's LOCAL run that ARMS the RAGAS v1 numeric floors).
+    # The eval judge is SEPARATE from the runtime product LLM (Groq/Gemini free-tier) and
+    # is a paid, local-only concern — the key lives ONLY in the gitignored `.env`; CI has
+    # none, so the gate falls back to the deterministic-stub SMOKE (floors do not hard-fail).
+    eval_judge_model: str = "claude-opus-4-8"
+    anthropic_api_key: str = ""
+
     # ---- Refund / spend guardrail tiers (US-E5-06/07, ADR-0033) ------------- #
     # The support agent's `refund` action is gated by amount tiers, compared in MINOR
     # units (integer cents) against the captured payment the refund would touch:

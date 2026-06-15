@@ -96,8 +96,79 @@ class DeterministicJudge:
         return JudgeScores(response_relevancy=relevancy, faithfulness=faithfulness)
 
 
+class ClaudeJudge:
+    """The REAL LLM judge — Claude scores relevancy + faithfulness (US-QA-D16, ADR-0033).
+
+    This is the live judge that ARMS the RAGAS v1 numeric floors (faithfulness ≥ 0.90,
+    relevancy ≥ 0.80). It is the human's LOCAL-ONLY concern: the eval judge is SEPARATE
+    from the runtime product LLM (Groq/Gemini free-tier) and uses a paid Anthropic key
+    that lives only in the gitignored ``.env``. CI has no key, so this judge is
+    REGISTERED-BUT-NOT-CONSTRUCTED there — importing this module must never require the
+    key (the ``anthropic`` client is imported lazily, inside ``score``/``__init__``).
+
+    Arming contract (ADR-0033 §3): ``run_gate`` only constructs this judge when
+    ``EVAL_JUDGE=claude`` AND a key is present; absent either, the gate falls back to the
+    :class:`DeterministicJudge` as a CI-safe smoke and the floors do NOT hard-fail. So
+    nothing on the default/CI path ever imports ``anthropic`` or calls Anthropic.
+    """
+
+    def __init__(self, *, model: str | None = None, api_key: str | None = None) -> None:
+        # Lazy import: the anthropic SDK is an optional, local-only dependency. Importing
+        # app.eval.judge (CI default path) must not require it.
+        from anthropic import Anthropic  # type: ignore[import-not-found]  # noqa: PLC0415
+
+        self._model = model or settings.eval_judge_model
+        key = api_key or settings.anthropic_api_key
+        if not key:
+            raise ValueError(
+                "ClaudeJudge needs an Anthropic key (settings.anthropic_api_key / "
+                "ANTHROPIC_API_KEY). It is local-only; CI runs the DeterministicJudge."
+            )
+        self._client = Anthropic(api_key=key)
+
+    @property
+    def identity(self) -> str:
+        return f"claude:{self._model}"
+
+    def score(
+        self, record: GoldenRecord, *, answer: str, contexts: list[str]
+    ) -> JudgeScores:  # pragma: no cover - live Anthropic call, local-only (no key in CI)
+        import json  # noqa: PLC0415
+
+        grounding = "\n\n".join(contexts) if contexts else "(no retrieved context)"
+        prompt = (
+            "You are a strict RAGAS judge. Score one answer on two metrics, each a float "
+            "in [0,1]. Return ONLY JSON: "
+            '{"response_relevancy": <float>, "faithfulness": <float>}.\n\n'
+            "- response_relevancy: does the ANSWER address the QUESTION the way the "
+            "REFERENCE answer does? (a correct refusal of an out-of-scope question is "
+            "highly relevant).\n"
+            "- faithfulness: is every claim in the ANSWER grounded in the retrieved "
+            "CONTEXT (or, for a refusal, justified by the absence of support)? Penalise "
+            "any claim not supported by the context.\n\n"
+            f"QUESTION:\n{record.question}\n\n"
+            f"REFERENCE ANSWER:\n{record.expected_answer}\n\n"
+            f"RETRIEVED CONTEXT:\n{grounding}\n\n"
+            f"ANSWER TO SCORE:\n{answer}\n"
+        )
+        msg = self._client.messages.create(
+            model=self._model,
+            max_tokens=256,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = "".join(
+            block.text for block in msg.content if getattr(block, "type", "") == "text"
+        )
+        data = json.loads(text[text.index("{") : text.rindex("}") + 1])
+        return JudgeScores(
+            response_relevancy=clamp01(float(data["response_relevancy"])),
+            faithfulness=clamp01(float(data["faithfulness"])),
+        )
+
+
 _JUDGES: dict[str, type[Judge]] = {
     "deterministic": DeterministicJudge,
+    "claude": ClaudeJudge,
 }
 
 
@@ -105,7 +176,8 @@ def get_judge() -> Judge:
     """Resolve the active judge from ``settings.eval_judge`` (default ``deterministic``).
 
     Unknown judges fail loudly so a typo in ``EVAL_JUDGE`` never silently degrades the
-    eval to the stub. A real ``ClaudeJudge`` registers in ``_JUDGES`` under ``"claude"``.
+    eval to the stub. The real ``ClaudeJudge`` registers in ``_JUDGES`` under ``"claude"``
+    (live Anthropic call; constructed only when a key is present — see ``ClaudeJudge``).
     """
     name = settings.eval_judge
     try:
