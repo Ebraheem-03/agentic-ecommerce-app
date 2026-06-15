@@ -11,7 +11,8 @@ import { cn } from "@/lib/cn";
  *  - `primary` (default): --accent (Ember) fill with DARK INK (--n-900, #1b1611
  *    in both themes). White-on-ember fails AA (2.7:1); dark-ink-on-ember passes
  *    AA+AAA (6.7:1). This is the canonical CTA / agent voice.
- *  - `brand`: --brand (Clay) fill with white (--on-accent, 5.0:1). Non-agent
+ *  - `brand`: --brand (Clay) fill with white (--on-brand, 5.0:1 in BOTH themes —
+ *    Clay is too dark for the dark-theme ink-on-fill that suits Ember). Non-agent
  *    primary action.
  *  - `secondary`: outlined neutral surface, lower emphasis.
  *  - `ghost`: text-only.
@@ -32,7 +33,7 @@ export const buttonVariants = cva(
         primary:
           "bg-accent text-n-900 hover:bg-accent-strong disabled:hover:bg-accent",
         brand:
-          "bg-brand text-on-accent hover:bg-brand-strong disabled:hover:bg-brand",
+          "bg-brand text-on-brand hover:bg-brand-strong disabled:hover:bg-brand",
         secondary:
           "bg-surface text-text border border-border hover:bg-surface-muted " +
           "hover:border-n-300 disabled:hover:bg-surface disabled:hover:border-border",

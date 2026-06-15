@@ -22,7 +22,7 @@ export function PlaceholderPage({
   return (
     <div data-testid={testId} className="mx-auto max-w-[1200px] px-4 py-20 sm:px-8">
       <div className="mx-auto flex max-w-xl flex-col items-center gap-4 text-center">
-        <span className="inline-flex items-center gap-2 text-caption font-medium uppercase tracking-wide text-accent-strong before:inline-block before:h-px before:w-5 before:bg-accent-strong">
+        <span className="inline-flex items-center gap-2 text-caption font-medium uppercase tracking-wide text-accent-text before:inline-block before:h-px before:w-5 before:bg-accent-strong">
           {eyebrow}
         </span>
         <h1 className="font-display text-h1 font-semibold tracking-tight text-text">

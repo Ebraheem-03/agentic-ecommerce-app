@@ -44,7 +44,7 @@ export default function HomePage(): JSX.Element {
         <div className="mx-auto max-w-[1200px] px-4 sm:px-8">
           <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_.95fr]">
             <div className="flex flex-col gap-7">
-              <span className="inline-flex items-center gap-2 text-caption font-medium uppercase tracking-wide text-accent-strong before:inline-block before:h-px before:w-5 before:bg-accent-strong">
+              <span className="inline-flex items-center gap-2 text-caption font-medium uppercase tracking-wide text-accent-text before:inline-block before:h-px before:w-5 before:bg-accent-strong">
                 Handmade, shoppable by conversation
               </span>
               <h1 className="font-display text-display font-semibold leading-[1.05] tracking-tight text-text">
@@ -94,7 +94,13 @@ export default function HomePage(): JSX.Element {
                   </div>
                 </div>
               </div>
-              <div data-testid="agent-message-list" className="flex flex-1 flex-col gap-3.5 overflow-y-auto p-[18px]">
+              <div
+                data-testid="agent-message-list"
+                role="log"
+                aria-label="Conversation with the Hearth assistant"
+                tabIndex={0}
+                className="flex flex-1 flex-col gap-3.5 overflow-y-auto p-[18px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
+              >
                 <div data-testid="agent-message-assistant" className="max-w-[88%] self-start rounded-[14px_14px_14px_4px] bg-accent-tint px-3.5 py-3 text-small leading-relaxed text-text">
                   <span className="font-medium">Welcome in. What are you putting together?</span>
                   <br />I can help with a dinner set, a housewarming gift, or finding the maker behind something you already love.
@@ -102,7 +108,7 @@ export default function HomePage(): JSX.Element {
                 <div data-testid="agent-message-user" className="max-w-[88%] self-end rounded-[14px_14px_4px_14px] bg-brand-tint px-3.5 py-2.5 text-small leading-relaxed text-text">
                   A wedding gift for friends who love to cook — around $90.
                 </div>
-                <div data-testid="agent-thinking-indicator" aria-live="polite" className="inline-flex items-center gap-2 text-caption font-medium text-accent-strong">
+                <div data-testid="agent-thinking-indicator" aria-live="polite" className="inline-flex items-center gap-2 text-caption font-medium text-accent-text">
                   <span>Looking through 1,240 makers</span>
                 </div>
               </div>
@@ -138,7 +144,7 @@ export default function HomePage(): JSX.Element {
         <div className="mx-auto max-w-[1200px] px-4 sm:px-8">
           <div className="mb-7 flex items-end justify-between gap-4">
             <div className="flex flex-col gap-2">
-              <span className="inline-flex items-center gap-2 text-caption font-medium uppercase tracking-wide text-accent-strong before:inline-block before:h-px before:w-5 before:bg-accent-strong">
+              <span className="inline-flex items-center gap-2 text-caption font-medium uppercase tracking-wide text-accent-text before:inline-block before:h-px before:w-5 before:bg-accent-strong">
                 Curated this week
               </span>
               <h2 className="font-display text-h2 font-semibold tracking-tight text-text">
@@ -160,7 +166,7 @@ export default function HomePage(): JSX.Element {
                   {c.name}
                 </div>
                 <div className="flex flex-col gap-2 p-6">
-                  <span className="text-caption font-medium uppercase tracking-wide text-accent-strong">
+                  <span className="text-caption font-medium uppercase tracking-wide text-accent-text">
                     {c.makers}
                   </span>
                   <h3 className="font-display text-h3 font-semibold text-text">{c.name}</h3>
@@ -192,7 +198,7 @@ export default function HomePage(): JSX.Element {
                   {p.title}
                 </div>
                 <div className="flex flex-col gap-2 px-[18px] pb-[18px] pt-4">
-                  <span className="text-caption font-medium uppercase tracking-wide text-accent-strong">
+                  <span className="text-caption font-medium uppercase tracking-wide text-accent-text">
                     {p.maker}
                   </span>
                   <div className="text-h4 font-medium text-text">{p.title}</div>
