@@ -37,7 +37,7 @@ from typing import Protocol
 from sqlalchemy import Float, func, select
 from sqlalchemy.orm import Session
 
-from app.db.models import Product
+from app.db.models import Embedding, Product
 from app.schemas.search import (
     SearchEnvelope,
     SearchMeta,
@@ -45,6 +45,15 @@ from app.schemas.search import (
     SearchResult,
 )
 from app.services.catalog import _ACTIVE, _eager_product, _product_summary
+from app.services.embeddings import PRODUCT_SOURCE, get_embedder
+
+# How many candidates each arm of the hybrid retriever fetches before fusion. A small
+# over-fetch (vs. the final ``limit``) gives reciprocal-rank fusion something to fuse.
+_HYBRID_FETCH = 50
+
+# Reciprocal-rank-fusion constant (the standard k=60). Dampens the contribution of
+# low-ranked items so a doc ranked highly by EITHER arm still surfaces.
+_RRF_K = 60
 
 # A single ranked page is returned for v0 keyword search (no ranked cursor yet — see
 # module docstring). The route still enforces the contract limit (1..100); this is the
@@ -119,17 +128,18 @@ class KeywordRetriever:
 
 
 class SemanticRetriever:
-    """SEAM (deferred to Echo, Week-4): pgvector ANN retrieval over ``embeddings``.
+    """LIVE (US-E5-05): pgvector cosine ANN retrieval over the ``embeddings`` table.
 
-    NOT the live path — contract-v0 Decision-4 defers real semantic retrieval to Echo.
-    It exists so the structure is in place: Echo embeds the query via ``get_embedder()``
-    (the US-E4-08 provider seam), runs a cosine ``<=>`` ANN search against the HNSW index,
-    and returns ``ScoredProduct``s with cosine similarity as ``score`` — same output unit
-    as ``KeywordRetriever``, so the route and response are unchanged.
+    Embeds the query with ``get_embedder().embed_query`` — the RETRIEVAL_QUERY task path
+    (asymmetric retrieval; ADR-0032), NOT ``embed_text`` — then runs a cosine ``<=>`` ANN
+    search against the HNSW ``vector_cosine_ops`` index over product-source embeddings,
+    joining back to the live ``Product`` so the result unit is the same ``ScoredProduct``
+    as ``KeywordRetriever`` (``score`` = cosine similarity in [0, 1]).
 
-    Today it is inert: it raises if selected, so flipping it on is a deliberate Echo act,
-    never a silent default. ``get_embedder()`` is intentionally referenced (not called) to
-    pin the wiring point.
+    With the default ``StubEmbedder`` the cosine geometry is meaningless (stub vectors are
+    content-hash noise), so this branch is only meaningful under ``EMBED_PROVIDER=gemini``.
+    It is correct + key-free to RUN either way (no live call from the stub) — it just isn't
+    the active mode by default, so CI never depends on its ranking quality.
     """
 
     mode = SearchMode.semantic
@@ -137,20 +147,18 @@ class SemanticRetriever:
     def retrieve(
         self, session: Session, *, query: str, category: str | None, limit: int
     ) -> list[ScoredProduct]:
-        raise NotImplementedError(
-            "Semantic retrieval is deferred to Echo (Week-4, contract-v0 Decision-4). "
-            "Wire it here: embed `query` via app.services.embeddings.get_embedder(), run "
-            "a cosine ANN search over embeddings.embedding, return ScoredProduct list."
-        )
+        return _semantic_products(session, query=query, category=category, limit=limit)
 
 
 class HybridRetriever:
-    """SEAM (deferred to Echo, Week-4): fuse keyword + semantic, then rerank.
+    """LIVE (US-E5-05): fuse keyword + semantic with reciprocal-rank fusion, then rerank.
 
-    The intended live path once a real embedder lands: run both ``KeywordRetriever`` and
-    ``SemanticRetriever``, fuse their scored lists (e.g. reciprocal-rank fusion), then pass
-    through ``rerank()``. Reports ``mode = hybrid``. Inert today for the same reason as
-    ``SemanticRetriever``; the keyword half already works, so enabling hybrid is additive.
+    Runs both ``KeywordRetriever`` (FTS/ts_rank) and ``SemanticRetriever`` (cosine ANN),
+    over-fetches from each, fuses their rank orders via RRF (rank-only, so the two
+    incomparable score scales never need normalizing), then passes the fused list through
+    ``rerank()``. Reports ``mode = hybrid``. The keyword half is meaningful even on the
+    stub embedder, so hybrid degrades gracefully to keyword-dominant ranking when no real
+    embeddings are present.
     """
 
     mode = SearchMode.hybrid
@@ -162,10 +170,60 @@ class HybridRetriever:
     def retrieve(
         self, session: Session, *, query: str, category: str | None, limit: int
     ) -> list[ScoredProduct]:
-        raise NotImplementedError(
-            "Hybrid retrieval is deferred to Echo (Week-4). Fuse KeywordRetriever + "
-            "SemanticRetriever (e.g. RRF), then pass through rerank()."
+        kw = self._keyword.retrieve(
+            session, query=query, category=category, limit=_HYBRID_FETCH
         )
+        sem = self._semantic.retrieve(
+            session, query=query, category=category, limit=_HYBRID_FETCH
+        )
+        fused = _rrf_fuse(kw, sem)
+        return fused[:limit]
+
+
+def _semantic_products(
+    session: Session, *, query: str, category: str | None, limit: int
+) -> list[ScoredProduct]:
+    """Cosine ANN over product embeddings -> ScoredProduct list (similarity as score)."""
+    query_vec = get_embedder().embed_query(query)
+    distance = Embedding.embedding.cosine_distance(query_vec)
+    stmt = (
+        select(Product, distance.label("distance"))
+        .join(Embedding, Embedding.source_id == Product.id)
+        .where(
+            Embedding.source_type == PRODUCT_SOURCE,
+            Product.status == _ACTIVE,
+            Product.deleted_at.is_(None),
+        )
+        .options(*_eager_product())
+        .order_by(distance.asc())
+        .limit(limit)
+    )
+    if category is not None:
+        stmt = stmt.where(Product.category == category)
+    return [
+        # cosine_distance is 1 - cosine_similarity; convert to a [0,1] similarity score.
+        ScoredProduct(product=product, score=1.0 - float(dist))
+        for product, dist in session.execute(stmt).all()
+    ]
+
+
+def _rrf_fuse(*ranked: list[ScoredProduct]) -> list[ScoredProduct]:
+    """Reciprocal-rank fusion of several ranked ScoredProduct lists, best-first.
+
+    RRF scores each product by ``sum(1 / (k + rank))`` across the lists it appears in
+    (rank is 0-based per list). Rank-only fusion sidesteps the incomparable ts_rank vs.
+    cosine score scales. The product instance from the first list it appears in is kept;
+    its ``score`` is set to the fused RRF score so the route still surfaces a relevance.
+    """
+    fused: dict[str, float] = {}
+    keep: dict[str, ScoredProduct] = {}
+    for results in ranked:
+        for rank, sp in enumerate(results):
+            pid = sp.product.id
+            fused[pid] = fused.get(pid, 0.0) + 1.0 / (_RRF_K + rank)
+            keep.setdefault(pid, sp)
+    ordered = sorted(fused.items(), key=lambda kv: kv[1], reverse=True)
+    return [ScoredProduct(product=keep[pid].product, score=score) for pid, score in ordered]
 
 
 # The active retriever. Keyword is the only live path (Decision-4); the semantic/hybrid
@@ -185,12 +243,19 @@ def get_retriever(mode: SearchMode | None = None) -> Retriever:
 
 
 def rerank(results: list[ScoredProduct], *, query: str) -> list[ScoredProduct]:
-    """Rerank stub — IDENTITY passthrough today (US-E4-07).
+    """Rerank — IDENTITY passthrough for v0 (US-E4-07 seam, kept by US-E5-05).
 
-    The seam where Echo plugs a cross-encoder / LLM reranker (Week-4): reorder the
-    retrieved candidates by a stronger relevance signal than the retriever's first-pass
-    score. Today it returns the list unchanged so the keyword ranking is authoritative,
-    and the call site never changes when a real reranker lands.
+    For the hybrid path the relevance signal is already the reciprocal-rank fusion of two
+    independent retrievers (FTS + cosine ANN), which is a strong first pass; a second-stage
+    reranker only earns its place at larger candidate counts than this catalog has. So v0
+    stays identity and the fused order is authoritative.
+
+    Where a real reranker slots: a cross-encoder (e.g. ``BAAI/bge-reranker`` via a local
+    ONNX/sentence-transformers session, or a hosted rerank endpoint) would score each
+    ``(query, product-document)`` pair and re-sort here — the call site is unchanged. It is
+    deliberately NOT wired now: it needs model weights in the image (breaking the key-free
+    CI constraint unless run behind the same ``EMBED_PROVIDER``-style seam) and buys little
+    over RRF on a single-digit-result catalog. This is documented as the v0 trade-off.
     """
     return results
 
