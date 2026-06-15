@@ -18,18 +18,28 @@ from collections.abc import Iterator
 
 from fastapi import APIRouter, status
 from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session
 
+import app.core.config as app_config
+from app.agent import persistence
+from app.agent.runner import stream_turn
 from app.api._contract import ERROR_RESPONSES, stub
+from app.api.deps import CurrentUser, _factory_for
+from app.core.errors import APIError
+from app.db.models import User
 from app.schemas.agent import (
+    Citation,
     CitationsEvent,
     ConversationOut,
     ConversationStartRequest,
     DoneEvent,
+    MessageOut,
     MessageRequest,
     StreamError,
     TokenEvent,
 )
-from app.schemas.envelope import CamelModel, Envelope
+from app.schemas.enums import ConversationSurface, MessageRole
+from app.schemas.envelope import CamelModel, Envelope, ErrorCode
 
 router = APIRouter(prefix="/agent", tags=["agent"], responses=ERROR_RESPONSES)
 
@@ -71,24 +81,50 @@ def _sse_frame(event: str, data: object) -> str:
     return f"event: {event}\ndata: {json.dumps(data, default=str)}\n\n"
 
 
-def _illustrative_stream() -> Iterator[str]:
-    """A tiny, typed example turn so the contract's SSE shape is demonstrable.
+def _turn_session() -> Session:
+    """A dedicated Session for one streamed turn, bound to the current settings URL.
 
-    Week-2 replaces this with the real agent loop (retrieve → ground → act → persist).
-    The event ORDER and payload TYPES here are the locked contract; the strings are
-    placeholder. ``StreamError`` is imported to document the error frame's shape.
+    A ``StreamingResponse`` body runs AFTER the request's dependencies close, so the turn
+    can't borrow the ``get_session`` dependency's session (it would already be committed/
+    closed). The streaming generator opens + commits + closes this session itself.
     """
-    _ = StreamError  # documented error-frame payload; not emitted on the happy path
-    yield _sse_frame("token", TokenEvent(delta="contract-draft: ").delta)
-    yield _sse_frame("token", TokenEvent(delta="SSE agent turn (US-E4-00).").delta)
-    yield _sse_frame("citations", CitationsEvent().model_dump(mode="json")["citations"])
-    yield _sse_frame(
-        "done",
-        DoneEvent(
-            conversation_id="00000000-0000-0000-0000-000000000000",
-            message_id="00000000-0000-0000-0000-000000000000",
-        ).model_dump(mode="json"),
-    )
+    factory = _factory_for(app_config.settings.database_url)
+    return factory()
+
+
+# Test/injection seam: when set (e.g. a fixture installs a stub classifier/planner), the
+# SSE turn runs WITHOUT a provider key so the streaming path is CI-testable. Production
+# leaves this None and the runner resolves the real Groq/Gemini chat model from settings.
+_DEPS_OVERRIDES: dict[str, object] | None = None
+
+
+def _agent_stream(
+    *, user: User, text: str, conversation_id: str | None, surface: ConversationSurface
+) -> Iterator[str]:
+    """Drive a real agent turn and yield contract SSE frames, owning the session txn.
+
+    Uses the default (LLM-backed) brains unless ``_DEPS_OVERRIDES`` injects a stub (tests);
+    the chat model is resolved from settings (Groq by default). On any failure an ``error``
+    frame is emitted (StreamError shape) and the session rolls back. ``TokenEvent`` /
+    ``CitationsEvent`` types document the frame payloads the runner emits.
+    """
+    _ = (TokenEvent, CitationsEvent, StreamError)  # frame payload types (documented)
+    session = _turn_session()
+    try:
+        yield from stream_turn(
+            session=session,
+            user=user,
+            text=text,
+            conversation_id=conversation_id,
+            surface=surface,
+            deps_overrides=_DEPS_OVERRIDES,
+        )
+        session.commit()
+    except Exception as exc:  # noqa: BLE001 - emit a stream-level error, never raise mid-body
+        session.rollback()
+        yield _sse_frame("error", {"error": {"code": "internal_error", "message": str(exc)}})
+    finally:
+        session.close()
 
 
 @router.post(
@@ -98,13 +134,27 @@ def _illustrative_stream() -> Iterator[str]:
     response_class=StreamingResponse,
     responses=_SSE_RESPONSE,
 )
-def start_conversation(body: ConversationStartRequest) -> StreamingResponse:
+def start_conversation(
+    body: ConversationStartRequest, user: CurrentUser
+) -> StreamingResponse:
     """Open a conversation; if a first message is included, the assistant turn streams
     back as ``text/event-stream`` (token → citations → done). (J-BUY-01/02, J-SUP-02,
     J-SEL-03)
+
+    Auth-scoped: the acting user is resolved via ``require_user`` (one identity path for
+    humans + agents). The orchestrator graph classifies intent, routes to the shopping
+    agent (support/merch are deferred), and persists the turn to conversations/messages.
     """
+    surface = ConversationSurface(body.surface.value)
     return StreamingResponse(
-        _illustrative_stream(), media_type="text/event-stream"
+        _agent_stream(
+            user=user,
+            text=body.message or "",
+            conversation_id=None,
+            surface=surface,
+        ),
+        status_code=status.HTTP_201_CREATED,
+        media_type="text/event-stream",
     )
 
 
@@ -142,9 +192,47 @@ def sse_event_reference() -> Envelope[SseEventCatalog]:
     response_model=Envelope[ConversationOut],
     summary="Get a conversation with its message history (JSON, not streamed)",
 )
-def get_conversation(conversation_id: str) -> Envelope[ConversationOut]:
-    """Full conversation transcript incl. citations on assistant messages."""
-    stub()
+def get_conversation(
+    conversation_id: str, user: CurrentUser
+) -> Envelope[ConversationOut]:
+    """Full conversation transcript incl. citations on assistant messages.
+
+    Reads the DURABLE record (conversations/messages) — not graph-internal state. A
+    foreign conversation surfaces as ``not_found`` (no existence leak), matching the
+    handlers' owner-scoping convention.
+    """
+    from app.api.deps import get_session
+
+    session = next(get_session())
+    try:
+        convo = persistence.get_conversation(session, conversation_id)
+        if convo is None or (convo.user_id is not None and convo.user_id != user.id):
+            raise APIError(
+                status_code=status.HTTP_404_NOT_FOUND,
+                code=ErrorCode.not_found,
+                message="We couldn't find that conversation.",
+            )
+        out = ConversationOut(
+            id=convo.id,
+            surface=ConversationSurface(convo.surface),
+            context_order_id=convo.context_order_id,
+            context_product_id=convo.context_product_id,
+            created_at=convo.created_at,
+            messages=[
+                MessageOut(
+                    id=m.id,
+                    conversation_id=m.conversation_id,
+                    role=MessageRole(m.role),
+                    content=m.content,
+                    citations=[Citation.model_validate(c) for c in m.citations],
+                    created_at=m.created_at,
+                )
+                for m in sorted(convo.messages, key=lambda m: m.created_at)
+            ],
+        )
+        return Envelope(data=out)
+    finally:
+        session.close()
 
 
 @router.post(
@@ -154,7 +242,7 @@ def get_conversation(conversation_id: str) -> Envelope[ConversationOut]:
     responses=_SSE_RESPONSE,
 )
 def post_message(
-    conversation_id: str, body: MessageRequest
+    conversation_id: str, body: MessageRequest, user: CurrentUser
 ) -> StreamingResponse:
     """User message in (JSON); assistant turn streams out as ``text/event-stream``.
 
@@ -163,5 +251,11 @@ def post_message(
     + message_id). (J-BUY-03/06, J-SUP-02/03)
     """
     return StreamingResponse(
-        _illustrative_stream(), media_type="text/event-stream"
+        _agent_stream(
+            user=user,
+            text=body.content,
+            conversation_id=conversation_id,
+            surface=ConversationSurface.buyer,
+        ),
+        media_type="text/event-stream",
     )
