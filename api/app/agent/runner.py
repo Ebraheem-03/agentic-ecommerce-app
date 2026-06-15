@@ -26,6 +26,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.agent import persistence
@@ -73,6 +74,13 @@ def _pending_interrupt(graph: Any, config: dict[str, Any]) -> dict[str, Any] | N
     return None
 
 
+def _resolve_seller_store_id(session: Session, user: User) -> str | None:
+    """The seller's store id (for merch scope), resolved from identity — never the model."""
+    from app.db.models import Store
+
+    return session.scalar(select(Store.id).where(Store.owner_id == user.id))
+
+
 def run_turn(
     *,
     session: Session,
@@ -82,12 +90,15 @@ def run_turn(
     surface: ConversationSurface = ConversationSurface.buyer,
     deps_overrides: dict[str, Any] | None = None,
     compiled_graph: Any | None = None,
+    session_factory: Any | None = None,
 ) -> TurnResult:
     """Drive the graph for a new user message; persist the turn; return the result.
 
     If ``conversation_id`` is None a new conversation is opened. ``deps_overrides`` lets a
     test inject a stub ``classifier`` / ``planner`` (no provider key). ``compiled_graph``
     lets a test reuse one graph (with its checkpointer) across the run + resume.
+    ``session_factory`` (if given) lets off-critical-path work (async merch generation)
+    commit on its own session; the seller store scope is resolved from the user identity.
     """
     graph = compiled_graph or build_graph()
 
@@ -102,11 +113,18 @@ def run_turn(
         content=text,
     )
 
+    overrides = dict(deps_overrides or {})
+    # Identity-derived scope (never from the model): the seller's own store for merch.
+    if "seller_store_id" not in overrides:
+        overrides["seller_store_id"] = _resolve_seller_store_id(session, user)
+    if session_factory is not None and "session_factory" not in overrides:
+        overrides["session_factory"] = session_factory
+
     deps = GraphDeps(
         session=session,
         user=user,
         conversation_id=conversation_id,
-        **(deps_overrides or {}),
+        **overrides,
     )
     config = make_config(deps, thread_id=conversation_id)
     result = graph.invoke(user_turn(text), config)
@@ -188,6 +206,7 @@ def stream_turn(
     surface: ConversationSurface = ConversationSurface.buyer,
     deps_overrides: dict[str, Any] | None = None,
     compiled_graph: Any | None = None,
+    session_factory: Any | None = None,
 ) -> Iterator[str]:
     """Run a turn and yield contract-v0 SSE frames (token -> [approval] -> citations -> done).
 
@@ -205,6 +224,7 @@ def stream_turn(
             surface=surface,
             deps_overrides=deps_overrides,
             compiled_graph=compiled_graph,
+            session_factory=session_factory,
         )
     except Exception as exc:  # noqa: BLE001 - surface as a stream-level error frame
         yield _sse(

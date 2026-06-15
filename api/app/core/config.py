@@ -25,7 +25,12 @@ class Settings(BaseSettings):
     # process-env override precedence; `extra="ignore"` so unrelated compose vars
     # (POSTGRES_*, WEB_PORT, ...) don't trip validation. Bare `DATABASE_URL`/`EMBED_DIM`
     # still resolve from the environment exactly as before.
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    # ``populate_by_name`` so aliased fields (``cors_origins`` / ``llm_fallback_order``)
+    # accept their Python field name in a direct ``Settings(...)`` construction (tests),
+    # while the env still binds via the alias (``HEARTH_CORS_ORIGINS`` / ``LLM_FALLBACK_ORDER``).
+    model_config = SettingsConfigDict(
+        env_file=".env", extra="ignore", populate_by_name=True
+    )
 
     # Postgres connection string. For local dev docker-compose derives this from
     # the POSTGRES_* vars; tooling (Alembic) reads it straight from the env.
@@ -116,6 +121,39 @@ class Settings(BaseSettings):
     # dated version if/when this account gets a paid quota.
     gemini_model: str = "gemini-flash-latest"
 
+    # ---- Provider routing + fallback (US-E5-09, ADR-0034 §1) ---------------- #
+    # Runtime failover on top of the `llm_provider` one-line swap. The PRIMARY is
+    # `llm_provider`; this orders the fallback chain. Auto-cascade fires on TRANSIENT
+    # failures ONLY (HTTP 429 / timeout / 5xx) after a bounded retry of the primary;
+    # a domain/APIError/guardrail refusal NEVER falls back (it's a deterministic
+    # outcome, surfaced straight through the canonical envelope). Both exhausted ->
+    # a canonical `rate_limited` (429) envelope, never a raw exception. The list is a
+    # comma-separated provider order; the first entry is normally `llm_provider`. The
+    # retry bound is the number of attempts at the PRIMARY before cascading once to the
+    # next provider in the chain. Mirrors the executor's bounded-retry posture (ADR-0029).
+    llm_fallback_order: Annotated[list[str], NoDecode] = Field(
+        default=["groq", "gemini"], validation_alias="LLM_FALLBACK_ORDER"
+    )
+    llm_primary_max_attempts: int = 2
+
+    # ---- Semantic cache (US-E5-09, ADR-0034 §2) ----------------------------- #
+    # A pgvector-backed, NON-PERSONALIZED response cache so repeated/similar prompts
+    # skip the LLM round-trip. Cacheable surfaces ONLY: intent classification + grounded
+    # policy-RAG answers (the never-cache list — shopping/tool-results/PII/refusals/HITL/
+    # any injection-fired turn — is enforced in code, not config). Ordering is load-bearing
+    # (ADR-0033): scan_for_injection -> cache lookup -> LLM -> cache store. Tunable like the
+    # refund caps. Keys fold in provider+model+node_type+embed_provider+embed_dim (+store_id
+    # for policy). A lookup failure degrades to a live LLM call, never an internal_error.
+    semantic_cache_enabled: bool = True
+    # Cosine similarity threshold for a real-embedder hit (HIGH — a paraphrase, not a topic
+    # match; a false positive silently serves a wrong answer). Under EMBED_PROVIDER=stub the
+    # cache falls back to EXACT normalized-prompt match (stub similarity is noise).
+    semantic_cache_threshold: float = 0.95
+    # TTL backstop (content-version invalidation is primary). Classifier entries live a day;
+    # policy answers an hour (a policy edit also busts them via source-version invalidation).
+    semantic_cache_classifier_ttl_s: int = 86_400
+    semantic_cache_policy_ttl_s: int = 3_600
+
     # Browser CORS allow-list for the API. Defaults to the local Next.js dev origin;
     # override via `HEARTH_CORS_ORIGINS` as a comma-separated list of origins, e.g.
     # `HEARTH_CORS_ORIGINS=https://app.example.com,https://admin.example.com`.
@@ -126,12 +164,12 @@ class Settings(BaseSettings):
         alias="HEARTH_CORS_ORIGINS",
     )
 
-    @field_validator("cors_origins", mode="before")
+    @field_validator("cors_origins", "llm_fallback_order", mode="before")
     @classmethod
-    def _split_cors_origins(cls, value: object) -> object:
+    def _split_csv(cls, value: object) -> object:
         """Accept a comma-separated env string (or an already-parsed list)."""
         if isinstance(value, str):
-            return [origin.strip() for origin in value.split(",") if origin.strip()]
+            return [item.strip() for item in value.split(",") if item.strip()]
         return value
 
 

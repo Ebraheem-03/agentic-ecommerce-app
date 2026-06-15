@@ -44,18 +44,27 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.types import Command, interrupt
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 from typing_extensions import TypedDict
 
 from app.agent.brains import (
     IntentClassifier,
+    IntentResult,
     LLMIntentClassifier,
+    LLMMerchBrain,
     LLMShoppingPlanner,
     LLMSupportBrain,
+    MerchBrain,
     PlannerStep,
     ShoppingPlanner,
     SupportBrain,
     SupportPlan,
+)
+from app.agent.cache import (
+    CacheNodeType,
+    cache_lookup,
+    cache_store,
+    runtime_cache_key,
 )
 from app.agent.executor import execute_tool
 from app.agent.guardrails import (
@@ -63,9 +72,15 @@ from app.agent.guardrails import (
     InjectionHit,
     scan_for_injection,
 )
+from app.agent.merch import (
+    generate_merch_draft,
+    generate_merch_draft_async,
+    policy_content_version,
+)
 from app.agent.tools import DraftOrderInput, OrderStatusInput, RefundInput, ToolName
 from app.core.errors import APIError
 from app.db.models import User
+from app.schemas.agent import MerchDraftOut
 from app.schemas.enums import AgentOutcome
 from app.services import rag
 
@@ -110,6 +125,15 @@ class GraphDeps:
     classifier: IntentClassifier | None = None
     planner: ShoppingPlanner | None = None
     support: SupportBrain | None = None
+    merch: MerchBrain | None = None
+    # Store scope for the support policy cache (the buyer's active store context, if any) —
+    # None = platform/global policies only. NEVER read from model output.
+    support_store_id: str | None = None
+    # The seller's store for merchandising (resolved from request context, never the model).
+    seller_store_id: str | None = None
+    # Session factory for OFF-critical-path work (async merch generation commits on its own
+    # session/thread). None -> the merch node falls back to the request session (tests).
+    session_factory: sessionmaker[Session] | None = None
     # Default ship address for the checkout step when the turn didn't supply one.
     default_ship_address: dict[str, Any] = field(
         default_factory=lambda: {
@@ -133,10 +157,40 @@ def _deps(config: dict[str, Any]) -> GraphDeps:
 # Nodes.                                                                        #
 # --------------------------------------------------------------------------- #
 def _classify_node(state: AgentState, config: dict[str, Any]) -> dict[str, Any]:
-    """LLM intent classification -> route + confidence (the routing decision)."""
+    """LLM intent classification -> route + confidence (the routing decision).
+
+    Semantic-cached (ADR-0034 §2): intent classification is the every-turn, non-personalized
+    win (raw utterance + fixed system prompt, no identity/PII). ORDERING is load-bearing
+    (ADR-0033): scan_for_injection -> cache lookup -> brain -> cache store. The cache NEVER
+    sits ahead of the injection scan; an injection-fired turn is never cached (it routes on
+    so the downstream node refuses + logs it).
+    """
     deps = _deps(config)
+    history = list(state["messages"])
+    user_text = _latest_user_text(history)
+
+    injected = scan_for_injection(user_text) is not None
+    use_cache = bool(user_text) and not injected
+    key = runtime_cache_key(CacheNodeType.classify)
+
+    if use_cache:
+        cached = cache_lookup(deps.session, key=key, prompt=user_text)
+        if cached is not None:
+            return _classify_result(IntentResult.model_validate(cached))
+
     classifier = deps.classifier or LLMIntentClassifier(_require_model(config))
-    result = classifier.classify(list(state["messages"]))
+    result = classifier.classify(history)
+
+    # Store ONLY a clean classification (never an injection-fired turn). A lookup/store
+    # failure degrades to the live result — it never surfaces as an error.
+    if use_cache:
+        cache_store(
+            deps.session, key=key, prompt=user_text, response=result.model_dump(mode="json")
+        )
+    return _classify_result(result)
+
+
+def _classify_result(result: IntentResult) -> dict[str, Any]:
     clarifying = result.confidence < CLARIFY_THRESHOLD
     # Ambiguity fallback: low confidence -> shopping agent with a clarifying turn.
     route = "shopping" if clarifying else result.route
@@ -350,9 +404,31 @@ def _support_node(state: AgentState, config: dict[str, Any]) -> dict[str, Any]:
 
 
 def _support_policy(deps: GraphDeps, plan: SupportPlan, user_text: str) -> dict[str, Any]:
-    """Answer a policy question grounded in retrieved policy docs; refuse if ungrounded."""
+    """Answer a policy question grounded in retrieved policy docs; refuse if ungrounded.
+
+    Semantic-cached (ADR-0034 §2), STORE-SCOPED: a grounded policy answer is tenant-shared,
+    non-personalized, so it's cacheable per store. The user-turn injection scan already ran
+    in ``_support_node`` (cache sits BEHIND it — ADR-0033). Invalidation: the cache key folds
+    ``store_id`` and the entry carries a ``content_version`` = the in-scope policies' version
+    snapshot, so a policy EDIT busts stale answers before TTL (1h backstop). A refusal /
+    ungrounded turn is NEVER cached.
+    """
     query = plan.query or user_text
-    docs = rag.retrieve_policies(deps.session, query=query, limit=4)
+    store_id = deps.support_store_id
+    key = runtime_cache_key(CacheNodeType.policy, store_id=store_id)
+    version = policy_content_version(deps.session, store_id=store_id)
+
+    cached = cache_lookup(deps.session, key=key, prompt=query, content_version=version)
+    if cached is not None:
+        text = str(cached.get("answer", ""))
+        return {
+            "final_text": text,
+            "messages": [AIMessage(content=text)],
+            "action": None,
+            "citations": list(cached.get("citations", [])),
+        }
+
+    docs = rag.retrieve_policies(deps.session, query=query, store_id=store_id, limit=4)
 
     # Guardrail: retrieved passages are untrusted data — scan before grounding on them.
     hit = scan_for_injection(*(d.text for d in docs))
@@ -373,6 +449,17 @@ def _support_policy(deps: GraphDeps, plan: SupportPlan, user_text: str) -> dict[
     top = docs[0]
     answer = top.text.split("\n", 1)[-1].strip() if "\n" in top.text else top.text.strip()
     citations = _citations(docs)
+
+    # Cache the grounded success only (never a refusal). source_ids + the version snapshot
+    # drive content-version invalidation; a store-edit bumps the snapshot and busts this.
+    cache_store(
+        deps.session,
+        key=key,
+        prompt=query,
+        response={"answer": answer, "citations": citations},
+        source_ids=[d.source_id for d in docs],
+        content_version=version,
+    )
     return {
         "final_text": answer,
         "messages": [AIMessage(content=answer)],
@@ -472,19 +559,78 @@ def _citations(docs: list[rag.RetrievedDoc]) -> list[dict[str, Any]]:
     return out
 
 
-def _deferred_node_factory(
-    agent_label: str,
-) -> Callable[[AgentState, dict[str, Any]], dict[str, Any]]:
-    """Build a registered-but-deferred node returning a graceful 'not available yet'."""
+# --------------------------------------------------------------------------- #
+# Merchandising agent (US-E5-08): draft listing + comparables price suggestion. #
+# --------------------------------------------------------------------------- #
+def _merchandising_node(state: AgentState, config: dict[str, Any]) -> dict[str, Any]:
+    """Seller merchandising turn: generate a DRAFT listing + comparables price suggestion.
 
-    def _node(state: AgentState, config: dict[str, Any]) -> dict[str, Any]:
+    Guardrail-first (ADR-0034 §3): the seller's brief is scanned for injection BEFORE
+    generation; the retrieved comparables are scanned by the brain path too. Identity/scope
+    (the seller's store) comes from request context (``deps.seller_store_id`` resolved via
+    ``require_user``), never from model output. Generation runs OFF the request's
+    critical-path session (a fresh worker session that commits independently — the async
+    seam); the turn returns the completed DRAFT. The draft is NEVER published.
+    """
+    deps = _deps(config)
+    history = list(state["messages"])
+    brief = _latest_user_text(history)
+
+    hit = scan_for_injection(brief)
+    if hit is not None:
+        _log_injection(deps, hit)
+        return _refusal_result(INJECTION_REFUSAL, reason="prompt_injection", name="guardrail")
+
+    if not deps.seller_store_id:
         text = (
-            f"The {agent_label} assistant isn't available yet — it's coming soon. "
-            "In the meantime I can help you shop for products."
+            "I can help you draft a listing, but I couldn't tell which store this is for. "
+            "Open this from your seller dashboard and I'll prepare a draft."
         )
-        return {"final_text": text, "messages": [AIMessage(content=text)], "action": None}
+        return _reply(text)
 
-    return _node
+    brain: MerchBrain = deps.merch or LLMMerchBrain(_require_model(config))
+    draft = _run_merch_generation(deps, brief=brief, brain=brain)
+
+    text = (
+        f"I've prepared a draft listing “{draft.title}” with a suggested price "
+        f"of {(draft.price_suggestion.suggested_price_minor or 0) / 100:.2f}. "
+        f"{draft.price_suggestion.basis} It's saved as a draft for you to review and "
+        "publish — nothing is live yet."
+    )
+    return {
+        "final_text": text,
+        "messages": [AIMessage(content=text)],
+        "action": {
+            "action_type": "merch_draft",
+            "outcome": AgentOutcome.applied.value,
+            "payload": draft.model_dump(mode="json"),
+        },
+        "citations": [],
+    }
+
+
+def _run_merch_generation(
+    deps: GraphDeps, *, brief: str, brain: MerchBrain
+) -> MerchDraftOut:
+    """Run draft generation off the request critical path, return the completed draft.
+
+    Prefers an injected ``session_factory`` so generation commits on its OWN session/thread
+    (the async seam, ADR-0034 §3 — draft retrievable once ready). Falls back to the request
+    session (e.g. a test driving the node directly without a factory) so the path is always
+    exercisable. Either way the brain only writes copy; price is computed structurally; the
+    draft persists with ``status='draft'`` and is never published.
+    """
+    if deps.session_factory is not None:
+        future = generate_merch_draft_async(
+            deps.session_factory,
+            brief=brief,
+            store_id=deps.seller_store_id or "",
+            brain=brain,
+        )
+        return future.result()
+    return generate_merch_draft(
+        deps.session, brief=brief, store_id=deps.seller_store_id or "", brain=brain
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -548,7 +694,7 @@ def build_graph(checkpointer: BaseCheckpointSaver[Any] | None = None) -> Any:
     _add("approve_checkout", _approve_checkout_node)
     _add("checkout", _checkout_node)
     _add("support", _support_node)
-    _add("merchandising", _deferred_node_factory("merchandising"))
+    _add("merchandising", _merchandising_node)
 
     g.add_edge(START, "classify")
     g.add_conditional_edges(

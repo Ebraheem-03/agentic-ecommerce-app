@@ -37,7 +37,7 @@ import stays key-free: every live judge imports its SDK / builds its client lazi
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, NamedTuple, Protocol
+from typing import TYPE_CHECKING, Any, NamedTuple, Protocol
 
 from pydantic import BaseModel, Field
 
@@ -221,18 +221,23 @@ class LlmJudge:
     """
 
     def __init__(self, *, model: BaseChatModel | None = None) -> None:
-        if model is None:
+        # ``resolved`` is the chat model to score with: an injected fake (tests) or the
+        # runtime provider with failover (``get_chat_model`` returns a ``FailoverChatModel``,
+        # which proxies ``with_structured_output`` across both providers). Typed ``Any`` so
+        # the failover wrapper (not a ``BaseChatModel`` subclass) is accepted here.
+        resolved: Any = model
+        if resolved is None:
             # Lazy: get_chat_model() builds the Groq/Gemini client and raises with a clear
             # message if the provider key is absent (so import stays key-free; CI never
             # reaches here under the deterministic default).
             from app.agent.llm import get_chat_model  # noqa: PLC0415
 
-            model = get_chat_model()
+            resolved = get_chat_model()
         # Low temperature is already set by the provider factory (temperature=0.0) for a
         # deterministic-leaning score; structured output binds the typed schema.
         self._provider = settings.llm_provider
         self._model_name = settings.eval_llm_model or _runtime_model_name()
-        self._scorer = model.with_structured_output(_ScoreOut)
+        self._scorer = resolved.with_structured_output(_ScoreOut)
 
     @property
     def identity(self) -> str:

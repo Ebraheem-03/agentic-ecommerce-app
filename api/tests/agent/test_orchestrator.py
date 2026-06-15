@@ -19,7 +19,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import pytest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -80,23 +79,18 @@ def _order_count(session: Session, user: User) -> int:
 # --------------------------------------------------------------------------- #
 # Intent routing.                                                              #
 # --------------------------------------------------------------------------- #
-@pytest.mark.parametrize(
-    ("route", "confidence", "expect_text_contains"),
-    [
-        # support is now implemented (US-E5-06); merchandising stays deferred (Day 17).
-        ("merchandising", 0.95, "merchandising assistant isn't available yet"),
-    ],
-)
-def test_deferred_routes_return_graceful_message(
+def test_merch_route_without_a_store_replies_gracefully(
     seeded_db: SeededDb,
     handles: ResolvedHandles,
-    route: str,
-    confidence: float,
-    expect_text_contains: str,
 ) -> None:
-    """A confident merch classification hits the registered-but-deferred node."""
+    """A merch classification for a user with NO seller store replies gracefully (no draft).
+
+    Merchandising is implemented (US-E5-08) — no longer a deferred stub. A buyer (no store)
+    routed here gets the "which store is this for?" message and no action, rather than a
+    draft being created.
+    """
     user = _user(seeded_db, handles, "buyer_primary")
-    classifier = StubClassifier(IntentResult(route=route, confidence=confidence))  # type: ignore[arg-type]
+    classifier = StubClassifier(IntentResult(route="merchandising", confidence=0.95))
     with _session(seeded_db) as session:
         result = run_turn(
             session=session,
@@ -106,7 +100,7 @@ def test_deferred_routes_return_graceful_message(
         )
         session.commit()
     assert not result.awaiting_approval
-    assert expect_text_contains in result.final_text
+    assert "which store" in result.final_text.lower()
     assert result.action is None
 
 

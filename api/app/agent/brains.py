@@ -25,7 +25,7 @@ from __future__ import annotations
 from typing import Literal, Protocol
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import BaseMessage, SystemMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
 # The three product agents the orchestrator routes to. shopping is built today;
@@ -97,6 +97,25 @@ class SupportPlan(BaseModel):
     reason: str = Field(default="", description="Optional refund reason / short rationale.")
 
 
+class MerchListing(BaseModel):
+    """A generated DRAFT listing's copy (US-E5-08, ADR-0034 §3).
+
+    The merchandising brain produces ONLY the listing COPY — title, description,
+    category, attributes — grounded in the seller's brief + retrieved comparable
+    products. It does NOT set the price (the price SUGGESTION is computed structurally
+    in ``app.agent.merch`` from real comparable catalog rows, surfaced with its basis —
+    never invented by the model), and it never publishes (the draft persists with a
+    ``draft`` status; seller approval is a future story).
+    """
+
+    title: str = Field(description="A concise, appealing product title.")
+    description: str = Field(description="A grounded 1-3 sentence product description.")
+    category: str = Field(default="", description="The product category (e.g. 'Home').")
+    attributes: dict[str, str] = Field(
+        default_factory=dict, description="Key product attributes (material, size, ...)."
+    )
+
+
 # --------------------------------------------------------------------------- #
 # Protocols — the injection seam.                                              #
 # --------------------------------------------------------------------------- #
@@ -112,6 +131,10 @@ class ShoppingPlanner(Protocol):
 
 class SupportBrain(Protocol):
     def plan(self, history: list[BaseMessage]) -> SupportPlan: ...
+
+
+class MerchBrain(Protocol):
+    def draft(self, brief: str, comparables: list[str]) -> MerchListing: ...
 
 
 # --------------------------------------------------------------------------- #
@@ -208,12 +231,54 @@ class LLMSupportBrain:
         return result
 
 
+_MERCH_SYSTEM = SystemMessage(
+    content=(
+        "You are a merchandising assistant helping a SELLER draft a product listing. From "
+        "the seller's brief and a list of REAL comparable products from the catalog, write "
+        "a concise title, a grounded 1-3 sentence description, a category, and key "
+        "attributes. Ground the copy in the seller's brief and the comparables — do NOT "
+        "invent specs, brands, or competitor claims. You do NOT set the price (the system "
+        "computes a suggestion from the real comparables) and you do NOT publish — this is "
+        "a DRAFT a human approves."
+    )
+)
+
+
+class LLMMerchBrain:
+    """Generate a draft listing's COPY via structured output (the default merch brain).
+
+    Like the other brains, the REASONING is the LLM's but the ACTION is the node's: the
+    merch node retrieves comparables, computes the price suggestion structurally, and
+    persists the DRAFT (never publishes). The brain cannot set price, identity, or store —
+    those are closed over / computed, never from model output.
+    """
+
+    def __init__(self, model: BaseChatModel) -> None:
+        self._model = model.with_structured_output(MerchListing)
+
+    def draft(self, brief: str, comparables: list[str]) -> MerchListing:
+        ctx: list[BaseMessage] = [_MERCH_SYSTEM, HumanMessage(content=brief)]
+        if comparables:
+            ctx.append(
+                SystemMessage(
+                    content="Comparable products (real catalog rows):\n"
+                    + "\n".join(comparables)
+                )
+            )
+        result = self._model.invoke(ctx)
+        assert isinstance(result, MerchListing)
+        return result
+
+
 __all__ = [
     "IntentClassifier",
     "IntentResult",
     "LLMIntentClassifier",
+    "LLMMerchBrain",
     "LLMShoppingPlanner",
     "LLMSupportBrain",
+    "MerchBrain",
+    "MerchListing",
     "PlannerStep",
     "Route",
     "ShoppingPlanner",

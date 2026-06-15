@@ -18,7 +18,6 @@ from collections.abc import Iterator
 
 from fastapi import APIRouter, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
 
 import app.core.config as app_config
 from app.agent import persistence
@@ -81,15 +80,10 @@ def _sse_frame(event: str, data: object) -> str:
     return f"event: {event}\ndata: {json.dumps(data, default=str)}\n\n"
 
 
-def _turn_session() -> Session:
-    """A dedicated Session for one streamed turn, bound to the current settings URL.
-
-    A ``StreamingResponse`` body runs AFTER the request's dependencies close, so the turn
-    can't borrow the ``get_session`` dependency's session (it would already be committed/
-    closed). The streaming generator opens + commits + closes this session itself.
-    """
-    factory = _factory_for(app_config.settings.database_url)
-    return factory()
+# A ``StreamingResponse`` body runs AFTER the request's dependencies close, so the turn
+# can't borrow the ``get_session`` dependency's session (it would already be committed/
+# closed). The streaming generator opens + commits + closes its OWN session (and reuses the
+# same per-URL factory for off-critical-path work like async merch generation).
 
 
 # Test/injection seam: when set (e.g. a fixture installs a stub classifier/planner), the
@@ -109,7 +103,8 @@ def _agent_stream(
     ``CitationsEvent`` types document the frame payloads the runner emits.
     """
     _ = (TokenEvent, CitationsEvent, StreamError)  # frame payload types (documented)
-    session = _turn_session()
+    factory = _factory_for(app_config.settings.database_url)
+    session = factory()
     try:
         yield from stream_turn(
             session=session,
@@ -118,6 +113,8 @@ def _agent_stream(
             conversation_id=conversation_id,
             surface=surface,
             deps_overrides=_DEPS_OVERRIDES,
+            # Off-critical-path work (async merch generation) commits on its own session.
+            session_factory=factory,
         )
         session.commit()
     except Exception as exc:  # noqa: BLE001 - emit a stream-level error, never raise mid-body
