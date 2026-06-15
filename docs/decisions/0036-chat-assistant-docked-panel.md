@@ -1,47 +1,62 @@
-# ADR-0036 — Conversational shopping assistant = persistent docked panel
+# ADR-0036 — Conversational shopping assistant = conversation-first search page
 
-- **Status:** Accepted (human-ratified up front, Day 19 / W3D5, 2026-06-27)
+- **Status:** Accepted (human-ratified, Day 19 / W3D5, 2026-06-27). **Revised same-day** after a
+  rendered review (see "Decision history").
 - **Owner agent:** Iris (frontend) · ratified by human via Atlas
 - **Relates:** ADR-0017 (hi-fi screens / agent-voice surface), ADR-0021 (agent chat = SSE
-  `token→citations→done`), ADR-0035 (shadcn/ui on Hearth tokens), ADR-0031 (LangGraph runtime)
+  `token→citations→done`), ADR-0035 (shadcn/ui on Hearth tokens), ADR-0031 (LangGraph runtime),
+  ADR-0037 (frontend mock SSE + shop clients — unaffected by the layout change)
 
 ## Context
 Day 19 builds the frontend core flows: US-E6-04 (catalog + search UI with streaming generative
 product cards) and US-E6-05 `[REVIEW]` (chat shopping assistant UI — streaming + UI rendering).
 The agent turn is an SSE stream (`token → citations → done`, `done` carries `recommendations[]`);
-search is also a plain `GET /search?q=` → `SearchResult[]` grid. How the conversational surface
+search is also a plain `GET /search?q=` → `SearchResult[]`. How the conversational surface
 integrates with the catalog/search page is the architecture-shaping UX fork — and the `[REVIEW]`
 acceptance is "UX approved."
 
 ## Decision
-The shopping assistant is a **persistent docked panel** (right-side dock) that follows the user
-across shop pages, matching the approved home concierge (home.html hi-fi).
+The shopping assistant is **conversation-first**: the **`/search` route IS the conversation**.
 
-- **Search page (US-E6-04):** a traditional **results grid** in the main column (`search-results`
-  / `search-result-card`), fed by `GET /search?q=`. Plain browse/scan stays first-class.
-- **Agent panel (US-E6-05):** the docked `agent-*` surface streams the assistant turn — `token`
-  deltas append to the active assistant message, a `thinking` indicator shows presence,
-  `citations` render as `agent-citation`, and `done.recommendations[]` render as in-panel
-  `agent-recommendation-card` (+ `agent-recommendation-reason` "why"). Rec cards can deep-link
-  into the main-column grid / product detail.
-- **One chat surface everywhere:** the same docked panel appears on home/search/product (its
-  `agent-*` testids are stable cross-screen per the registry), giving the product its agentic
-  identity without a separate chat route.
+- **`/search` (US-E6-04 + US-E6-05 unified):** a centered chat column. The user types a query
+  (`agent-chat-input` / `agent-chat-send`), Ember streams the turn (`thinking` presence →
+  token-by-token assistant message → `citations`), and **`done.recommendations[]` render as
+  generative product cards INLINE in the assistant's reply** (`agent-recommendation-card` +
+  `agent-recommendation-reason`). Discovery is fully agent-driven — there is **no separate
+  side-docked panel and no separate full results grid** as the primary surface.
+- **Plain `GET /search?q=`** still backs keyword queries; a conversational ask and a plain query
+  both resolve into the same in-conversation card stream (the chat column is the single results
+  surface). A deep-linkable `?q=` seeds the first turn.
+- **Rec/result cards deep-link** into the product detail route (`/product/[idOrSlug]`), which is
+  unchanged and stays a traditional PDP.
+- **Other pages:** home's hero/entry (`home-hero-cta` / `home-search-entry`) kicks off a
+  conversation and navigates into `/search`; the product page can offer an "Ask Ember about this"
+  entry that opens `/search` with context. The chat is **not** a persistent cross-page dock.
+- Responsive: the conversation column is single-column on mobile; the same `agent-*` testids
+  apply. Respect `prefers-reduced-motion` (static thinking indicator).
 
-## Alternatives considered
-- **Conversation-first search page** (the `/search` route *is* the chat, cards inline in replies)
-  — boldest, but discards the traditional browse grid; too far for a portfolio demo that should
-  show both paradigms.
-- **Drawer/overlay from nav** — keeps browse and chat separate but makes the agent opt-in and
-  ever-absent; weakest agentic presence, contradicts the home concierge direction.
+## Decision history (why this ADR was revised same-day)
+The fork was first ratified up front as a **persistent docked right-side panel** (the home
+concierge generalized across shop pages). Iris built it (commits `1d55b46`/`809fe87`); Atlas
+rendered it in a real Chromium window for the human's `[REVIEW]` sign-off (per the design-review
+practice). On seeing it rendered, the human **reworked the layout direction** → chose
+**conversation-first**. This ADR is updated to the final ratified direction; the docked-panel
+build is superseded and Iris rebuilds the search/chat surface (the PDP, the SSE client, and the
+ADR-0037 mock endpoints are reused unchanged).
+
+## Alternatives considered (at the rework)
+- **Persistent docked panel** — the initial pick; reworked after rendered review (above).
+- **Drawer/overlay from nav** — browse and chat separate, chat opt-in; most conventional but
+  weakest agentic presence.
+- **Hybrid command-bar** — one top entry, grid-first with an inline answer panel; kept the grid
+  as the primary surface, less fully conversational than chosen.
 
 ## Consequences
-- The docked panel is a shared shell-level component (lives alongside the `(shop)` layout), not a
-  per-page widget — state persists across navigation within the shop group.
-- **Backend SSE runtime is on `integration/agents`, not live on this line.** Iris wires the SSE
-  client to the locked contract event shape and drives local dev + the US-QA-D19 E2E from a
-  mock/fixture stream (same pattern as Day-18 auth). Real end-to-end streaming is proven at the
-  Day-21 W3 gate when both lines merge.
-- Responsive: on mobile the dock collapses to an invokable sheet (the panel's `agent-*` testids
-  stay identical) so the QA suite runs both viewports.
-- US-QA-D19 must cover empty/error/loading + the streaming happy path against the mock stream.
+- The `(shop)` layout **drops the persistent `AgentDock`**; the conversation lives on `/search`.
+  `AgentProvider`/`agent-store` streaming state machine and the `agent-*` components are reused,
+  re-homed into the `/search` conversation column (state scoped to the route, not the layout).
+- The PDP (`/product/[idOrSlug]`), the SSE client, and the ADR-0037 mock route handlers
+  (`/api/agent/**`, `/api/search`, `/api/cart/items`) are **unchanged** — only the presentation
+  shell changes. Flip-to-live at the Day-21 W3 gate is still a config change.
+- US-QA-D19 (Juno) targets the conversation-first `/search` (streaming happy path + clarify +
+  refusal + error + empty/loading) and the PDP, both viewports, against the mock stream.
