@@ -21,7 +21,11 @@ from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 class Settings(BaseSettings):
     """Backend configuration, populated from the process environment."""
 
-    model_config = SettingsConfigDict(env_file=None, extra="ignore")
+    # Load a gitignored `.env` (the human supplies real keys there) while keeping
+    # process-env override precedence; `extra="ignore"` so unrelated compose vars
+    # (POSTGRES_*, WEB_PORT, ...) don't trip validation. Bare `DATABASE_URL`/`EMBED_DIM`
+    # still resolve from the environment exactly as before.
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # Postgres connection string. For local dev docker-compose derives this from
     # the POSTGRES_* vars; tooling (Alembic) reads it straight from the env.
@@ -52,6 +56,23 @@ class Settings(BaseSettings):
     # question; with no live agent runtime yet, "stub" selects the CI-safe stub
     # answerer (app/eval/answerer.py). Flip to the real agent answerer once it lands.
     eval_answerer: str = "stub"
+
+    # ---- Runtime PRODUCT LLM (US-E5-03/04/09, ADR-0031) --------------------- #
+    # The chat model behind the product's own agents (shopping/support/merch). Both
+    # Groq AND Gemini are configured; `llm_provider` flips between them with a SINGLE
+    # config-line change (mirrors the embed/judge registry pattern — unknown provider
+    # fails loud in app/agent/llm.py::get_chat_model). Groq is the default primary;
+    # Gemini is the Day-17 fallback (US-E5-09, fallback chain not built yet). Keys come
+    # from the gitignored `.env` (the human supplies them); CI has none and injects a
+    # FakeListChatModel, so an empty key here is fine for tests.
+    llm_provider: str = "groq"
+    groq_api_key: str = ""
+    gemini_api_key: str = ""
+    # Current Groq free-tier model (2026-06). Llama 3.3 70B Versatile — solid tool-calling
+    # + structured-output support, the default for intent classification + the agent loop.
+    groq_model: str = "llama-3.3-70b-versatile"
+    # Gemini fallback model — fast, free-tier, tool-calling capable.
+    gemini_model: str = "gemini-2.0-flash"
 
     # Browser CORS allow-list for the API. Defaults to the local Next.js dev origin;
     # override via `HEARTH_CORS_ORIGINS` as a comma-separated list of origins, e.g.

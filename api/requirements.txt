@@ -15,3 +15,12 @@ email-validator>=2,<3
 # Password hashing for auth (argon2id) — US-E4-04. Mirrors pyproject [project.dependencies];
 # CI installs from this file, so it must stay in sync or auth imports fail in CI.
 argon2-cffi>=23,<24
+# ---- Product agent runtime (US-E5-03/04, ADR-0031) --------------------------
+# LangGraph StateGraph orchestrator + human-in-the-loop interrupt(); LangChain
+# chat-model abstraction (FakeListChatModel in tests, real providers in prod).
+# Providers are swappable via LLM_PROVIDER (one config line): Groq is the default
+# primary; Gemini is configured now as the Day-17 fallback (US-E5-09).
+langgraph>=0.2.60,<0.4
+langchain-core>=0.3.30,<0.4
+langchain-groq>=0.2,<0.4
+langchain-google-genai>=2,<3
