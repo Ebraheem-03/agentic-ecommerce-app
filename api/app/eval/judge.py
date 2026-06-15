@@ -14,28 +14,39 @@ default path CI-safe (no keys, no network) they sit behind a ``Judge`` Protocol:
   This is a **harness-exercising stub, not a semantic judge** — its numbers prove the
   pipeline runs and are well-formed, NOT that an answer is good. The §4 quality gates in
   ``qa-matrix.md`` only become meaningful under a REAL judge.
-* ``get_judge()`` — resolves ``settings.eval_judge`` (default ``"deterministic"``). A
-  real Claude judge registers in ``_JUDGES`` and is selected by flipping ``EVAL_JUDGE``;
-  unknown judges fail loudly (like ``get_embedder``).
+* ``LlmJudge`` — the RECOMMENDED armed judge. Scores via the SAME free-tier provider as
+  the product runtime (Groq/Gemini, through :func:`app.agent.llm.get_chat_model` /
+  ``LLM_PROVIDER``), so ONE free-tier key arms both the app and the eval gate — no paid
+  Anthropic key needed. Registered under ``"llm"``.
+* ``ClaudeJudge`` — an OPTIONAL paid judge (separate Anthropic key). Kept registered.
+* ``get_judge()`` — resolves ``settings.eval_judge`` (default ``"deterministic"``). The
+  ``LlmJudge``/``ClaudeJudge`` register in ``_JUDGES`` and are selected by flipping
+  ``EVAL_JUDGE``; unknown judges fail loudly (like ``get_embedder``).
 
-CLAUDE-AS-JUDGE WHEN KEYS LAND
-==============================
-Per CLAUDE.md, the eval JUDGE is separate from the runtime PRODUCT LLM (which stays
-Groq/Gemini free-tier). When a judge key lands, a ``ClaudeJudge`` registers under
-``"claude"`` and defaults to the latest Claude model — :data:`DEFAULT_JUDGE_MODEL`
-(``claude-opus-4-8``). That id appears ONLY as the registered default for the
-not-yet-active Claude provider; nothing in the default path imports or calls it. A real
-``ragas`` integration would also slot in here (wrap RAGAS's metrics behind this same
-Protocol) — see the ADR for why we do NOT take a hard ``ragas`` dependency.
+FREE-TIER LLM JUDGE (recommended) vs CLAUDE (optional)
+======================================================
+The eval JUDGE is separate from the runtime PRODUCT LLM only in *role*, not in *provider*:
+the recommended ``LlmJudge`` reuses the runtime chat model (``get_chat_model()``), so the
+same Groq/Gemini free-tier key that runs the product also arms the gate. The ``ClaudeJudge``
+stays available for anyone who wants a paid Anthropic judge; :data:`DEFAULT_JUDGE_MODEL`
+(``claude-opus-4-8``) is only its registered default. Both judges have a non-deterministic
+``identity`` so :func:`app.eval.gate.is_armed` arms the numeric floors under either — the
+``DeterministicJudge`` (identity prefixed ``deterministic:``) is the only smoke. Module
+import stays key-free: every live judge imports its SDK / builds its client lazily.
 """
 
 from __future__ import annotations
 
-from typing import NamedTuple, Protocol
+from typing import TYPE_CHECKING, NamedTuple, Protocol
+
+from pydantic import BaseModel, Field
 
 from app.core.config import settings
 from app.eval.dataset import GoldenRecord
 from app.eval.metrics import clamp01, containment, jaccard
+
+if TYPE_CHECKING:
+    from langchain_core.language_models.chat_models import BaseChatModel
 
 # The latest Claude model the real eval judge defaults to once a key lands. Referenced
 # only as a registered default for the (inert) Claude provider — never called here.
@@ -166,8 +177,123 @@ class ClaudeJudge:
         )
 
 
+class _ScoreOut(BaseModel):
+    """Structured-output schema the LLM judge returns (numeric, bounded by prompt + clamp).
+
+    Mirrors the orchestrator's ``with_structured_output`` pattern: the model emits this
+    typed object directly, so we never parse free-text. Both fields are scored in [0,1];
+    we still clamp defensively in :meth:`LlmJudge.score` (a model may drift out of range).
+    """
+
+    response_relevancy: float = Field(
+        description="Does the ANSWER address the QUESTION the way the REFERENCE does? [0,1]"
+    )
+    faithfulness: float = Field(
+        description="Is every claim in the ANSWER grounded in the retrieved CONTEXT? [0,1]"
+    )
+
+
+_LLM_JUDGE_SYSTEM = (
+    "You are a strict RAGAS judge. Score ONE answer on two metrics, each a float in [0,1].\n"
+    "- response_relevancy: does the ANSWER address the QUESTION the way the REFERENCE "
+    "answer does? A correct refusal of an out-of-scope question is HIGHLY relevant.\n"
+    "- faithfulness: is every claim in the ANSWER grounded in the retrieved CONTEXT (or, "
+    "for a refusal, justified by the absence of support)? Penalise any claim not supported "
+    "by the context. Be calibrated and deterministic; do not reward verbosity."
+)
+
+
+class LlmJudge:
+    """RECOMMENDED armed judge — scores via the free-tier runtime provider (US-E7-EJ).
+
+    Calls the SAME chat model the product's agents use (:func:`app.agent.llm.get_chat_model`,
+    selected by ``LLM_PROVIDER`` = Groq|Gemini), with ``with_structured_output`` so the
+    model returns numeric scores directly (mirrors the orchestrator's classify node). One
+    free-tier key therefore arms BOTH the runtime and the eval gate — NO paid Anthropic key.
+
+    Key-free import contract (mirrors :class:`ClaudeJudge`): the chat model is built lazily
+    on construction via ``get_chat_model()``, which raises if no provider key is set. So
+    importing this module never needs a key, and CI (no key, ``EVAL_JUDGE=deterministic``)
+    never constructs this judge. Tests inject a fake ``model`` to exercise scoring key-free.
+
+    The non-deterministic ``identity`` (``llm:<provider>:<model>``) arms the gate's numeric
+    floors via :func:`app.eval.gate.is_armed`, exactly like the Claude judge.
+    """
+
+    def __init__(self, *, model: BaseChatModel | None = None) -> None:
+        if model is None:
+            # Lazy: get_chat_model() builds the Groq/Gemini client and raises with a clear
+            # message if the provider key is absent (so import stays key-free; CI never
+            # reaches here under the deterministic default).
+            from app.agent.llm import get_chat_model  # noqa: PLC0415
+
+            model = get_chat_model()
+        # Low temperature is already set by the provider factory (temperature=0.0) for a
+        # deterministic-leaning score; structured output binds the typed schema.
+        self._provider = settings.llm_provider
+        self._model_name = settings.eval_llm_model or _runtime_model_name()
+        self._scorer = model.with_structured_output(_ScoreOut)
+
+    @property
+    def identity(self) -> str:
+        return f"llm:{self._provider}:{self._model_name}"
+
+    def score(
+        self, record: GoldenRecord, *, answer: str, contexts: list[str]
+    ) -> JudgeScores:
+        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
+
+        grounding = "\n\n".join(contexts) if contexts else "(no retrieved context)"
+        user = (
+            f"QUESTION:\n{record.question}\n\n"
+            f"REFERENCE ANSWER:\n{record.expected_answer}\n\n"
+            f"RETRIEVED CONTEXT:\n{grounding}\n\n"
+            f"ANSWER TO SCORE:\n{answer}\n"
+        )
+        result = self._scorer.invoke(
+            [SystemMessage(content=_LLM_JUDGE_SYSTEM), HumanMessage(content=user)]
+        )
+        # Defensive: structured output SHOULD yield _ScoreOut, but a provider may return a
+        # dict (or drift the fields). Degrade safely to 0.0 rather than crash the gate, and
+        # clamp to [0,1] — a malformed score must never silently pass a semantic floor.
+        rel = _coerce_score(result, "response_relevancy")
+        faith = _coerce_score(result, "faithfulness")
+        return JudgeScores(response_relevancy=rel, faithfulness=faith)
+
+
+def _runtime_model_name() -> str:
+    """The runtime provider's configured model name (for the judge identity tag)."""
+    if settings.llm_provider == "gemini":
+        return settings.gemini_model
+    return settings.groq_model
+
+
+def _coerce_score(result: object, field: str) -> float:
+    """Pull one score from the structured output, clamped to [0,1]; 0.0 on anything off.
+
+    Accepts the ``_ScoreOut`` Pydantic object (the happy path) or a plain ``dict`` (some
+    providers' structured-output mode returns one). A missing field or a non-numeric /
+    NaN value degrades to 0.0 — documented behaviour: a malformed judge response is treated
+    as the worst score, never a crash and never a silent pass of a semantic floor.
+    """
+    if isinstance(result, _ScoreOut):
+        value: object = getattr(result, field)
+    elif isinstance(result, dict):
+        value = result.get(field)
+    else:
+        value = getattr(result, field, None)
+    try:
+        score = float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return 0.0
+    if score != score:  # NaN guard (NaN != NaN)
+        return 0.0
+    return clamp01(score)
+
+
 _JUDGES: dict[str, type[Judge]] = {
     "deterministic": DeterministicJudge,
+    "llm": LlmJudge,
     "claude": ClaudeJudge,
 }
 
@@ -175,9 +301,11 @@ _JUDGES: dict[str, type[Judge]] = {
 def get_judge() -> Judge:
     """Resolve the active judge from ``settings.eval_judge`` (default ``deterministic``).
 
-    Unknown judges fail loudly so a typo in ``EVAL_JUDGE`` never silently degrades the
-    eval to the stub. The real ``ClaudeJudge`` registers in ``_JUDGES`` under ``"claude"``
-    (live Anthropic call; constructed only when a key is present — see ``ClaudeJudge``).
+    Registered slots: ``"deterministic"`` (CI smoke), ``"llm"`` (RECOMMENDED armed judge —
+    the free-tier runtime provider via ``get_chat_model()``/``LLM_PROVIDER``), ``"claude"``
+    (optional paid Anthropic judge). Unknown judges fail loudly so a typo in ``EVAL_JUDGE``
+    never silently degrades the eval to the stub. Live judges construct their client only
+    when a key is present (lazy), so this resolver stays key-free to import.
     """
     name = settings.eval_judge
     try:

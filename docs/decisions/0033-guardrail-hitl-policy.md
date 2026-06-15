@@ -88,6 +88,20 @@ pass**. Failures become tracked defects (not silent), per the acceptance criteri
 - Refusal-correctness and the injection test are **deterministic** and gate in CI too — they
   don't need the live judge.
 
+**Addendum (US-E7-EJ, post-Day-16): free-tier `"llm"` judge is now the recommended armed
+judge — no paid Anthropic key.** The original §3 wiring required a paid Anthropic key
+(`EVAL_JUDGE=claude`) to arm the floors — the project's only paid dependency. An `LlmJudge`
+(`app/eval/judge.py`, registered under `"llm"`) now scores faithfulness + answer relevancy
+via the **same free-tier provider the product runtime uses** (`get_chat_model()` →
+`LLM_PROVIDER` = Groq/Gemini), with structured output (a Pydantic `_ScoreOut`, clamped to
+`[0,1]`; malformed output degrades to 0.0, never crashes). So **one free-tier key arms BOTH
+the runtime and the eval gate** — `EVAL_JUDGE=llm` is the recommended path. The arming check
+(`gate.is_armed`) was already general (any non-`deterministic:` identity arms), so `LlmJudge`
+(identity `llm:<provider>:<model>`) arms exactly like Claude with no gate change; the
+`DeterministicJudge` smoke (CI default, key-free) is unchanged. `ClaudeJudge` stays
+registered as an **optional** paid judge. No new `[REVIEW]` — this is a free-tier swap of the
+already-ratified `Judge` seam.
+
 ## Consequences
 
 - The ADR-0029 guardrail fork is closed: `refund` now has a real cap + HITL threshold, and

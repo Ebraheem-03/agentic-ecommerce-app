@@ -56,9 +56,11 @@ class Settings(BaseSettings):
     # Eval JUDGE selector (US-E7-00, ADR-0030). The RAGAS harness's LLM-judge metrics
     # (response relevancy, faithfulness) run behind a Judge seam. "deterministic"
     # selects the CI-safe lexical-overlap stub so the harness runs with NO LLM keys.
-    # NOTE: the eval judge is SEPARATE from the runtime PRODUCT LLM (Groq/Gemini
-    # free-tier) — per CLAUDE.md it may be Claude. Flip to e.g. "claude" once a real
-    # judge is registered in app/eval/judge.py::_JUDGES (defaults to claude-opus-4-8).
+    # RECOMMENDED armed judge: "llm" — scores with the SAME free-tier provider as the
+    # product runtime (Groq/Gemini via LLM_PROVIDER), so one free-tier key arms both the
+    # app and the eval gate (NO paid Anthropic key needed). "claude" remains an optional
+    # paid judge (separate Anthropic key). Both arm the floors; "deterministic" is a smoke.
+    # Flip via EVAL_JUDGE; judges register in app/eval/judge.py::_JUDGES (fail-loud on typo).
     eval_judge: str = "deterministic"
 
     # Eval ANSWERER selector (US-E7-00). The judge metrics need an `answer` per golden
@@ -73,6 +75,14 @@ class Settings(BaseSettings):
     # none, so the gate falls back to the deterministic-stub SMOKE (floors do not hard-fail).
     eval_judge_model: str = "claude-opus-4-8"
     anthropic_api_key: str = ""
+
+    # Free-tier LLM judge model override (US-E7-EJ, ADR-0033 §3 addendum). When
+    # EVAL_JUDGE=llm the gate scores with the SAME runtime provider as the product
+    # (Groq/Gemini, via app/agent/llm.py::get_chat_model -> LLM_PROVIDER) — one free-tier
+    # key arms BOTH runtime and eval, so no paid Anthropic key is needed to arm the gate.
+    # Empty -> use the provider's configured runtime model (groq_model/gemini_model);
+    # set this only to score the eval on a DIFFERENT model than the runtime agents use.
+    eval_llm_model: str = ""
 
     # ---- Refund / spend guardrail tiers (US-E5-06/07, ADR-0033) ------------- #
     # The support agent's `refund` action is gated by amount tiers, compared in MINOR

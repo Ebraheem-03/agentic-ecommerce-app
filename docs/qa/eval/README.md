@@ -177,19 +177,28 @@ ADR-0033 §3 floors on the **support-policy** answers: faithfulness ≥ 0.90 · 
 relevancy ≥ 0.80 · context recall ≥ 0.70, plus every `expects_refusal` policy item must
 refuse and the injection test must pass.
 
-- **Armed vs smoke.** The numeric floors are **ARMED only when a live judge is configured**
-  (`EVAL_JUDGE=claude` + an Anthropic key — the human's LOCAL run). In CI / default (no key)
-  the gate falls back to the deterministic stub as a **SMOKE**: the floors are computed +
-  reported but do NOT hard-fail (the stub is lexical, not semantic). The arming decision is
-  explicit in the report (`armed`, `judge`). Same key-free pattern Day-15 set.
+- **Armed vs smoke.** The numeric floors are **ARMED only when a live judge is configured**.
+  In CI / default (no key) the gate falls back to the deterministic stub as a **SMOKE**: the
+  floors are computed + reported but do NOT hard-fail (the stub is lexical, not semantic).
+  The arming decision is explicit in the report (`armed`, `judge`). Same key-free pattern
+  Day-15 set.
+- **RECOMMENDED judge: `EVAL_JUDGE=llm` (free-tier).** The recommended armed judge scores
+  via the **same free-tier provider the product runtime uses** (`LLM_PROVIDER` → Groq/Gemini,
+  through `app/agent/llm.py::get_chat_model`). So the **same free-tier key that runs the app
+  also arms the eval gate — NO paid Anthropic key is needed**. To arm a local run: set
+  `LLM_PROVIDER` + its `GROQ_API_KEY`/`GEMINI_API_KEY` (already set for the runtime), then
+  `EVAL_JUDGE=llm`. Optionally `EVAL_LLM_MODEL=...` to score on a different model than the
+  agents use (blank reuses `GROQ_MODEL`/`GEMINI_MODEL`). Identity is `llm:<provider>:<model>`.
 - **Real grounded answers.** The gate scores answers from the **real support-policy RAG
   path** (the live LangGraph support node), key-free via Echo's injectable `SupportBrain` —
   not the `StubAnswerer`. So faithfulness/recall reflect the actual grounded pipeline.
 - **Deterministic checks gate in CI.** Refusal-correctness + injection (driven through the
   real guardrail path, asserting `action_type="guardrail"`, `outcome=refused`) need no judge.
-- **Claude judge.** Wired behind the existing `"claude"` registry slot in `app/eval/judge.py`
-  (model `claude-opus-4-8`); a real Anthropic call when a key is present, referenced-but-not
-  -constructed (lazy SDK import) key-free.
+- **Claude judge (optional).** Still wired behind the `"claude"` registry slot in
+  `app/eval/judge.py` (model `claude-opus-4-8`, separate `ANTHROPIC_API_KEY`); a real
+  Anthropic call when a key is present, referenced-but-not-constructed (lazy SDK import)
+  key-free. It remains an option, but the free-tier `"llm"` judge above is the recommended
+  way to arm the gate so the project needs **no paid key**.
 - **Known keyword gap.** EVAL-025 (a multi-policy return question) is mis-ranked by the
   key-free **keyword** policy retriever and does NOT refuse under it — recorded as a tracked
   `refusal:known-keyword-gap` defect (visible, counted) but NOT hard-failing CI, the same
