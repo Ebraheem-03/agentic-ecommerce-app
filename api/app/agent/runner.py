@@ -37,7 +37,7 @@ from app.agent.graph import (
     make_config,
     user_turn,
 )
-from app.agent.trace import set_disposition, trace_turn
+from app.agent.trace import current_trace, set_disposition, trace_turn
 from app.db.models import User
 from app.schemas.agent import AgentActionOut, DoneEvent
 from app.schemas.enums import ConversationSurface, MessageRole
@@ -50,7 +50,14 @@ def _sse(event: str, data: object) -> str:
 
 @dataclass
 class TurnResult:
-    """The outcome of driving the graph for one turn (before SSE encoding)."""
+    """The outcome of driving the graph for one turn (before SSE encoding).
+
+    ``run_id`` is the OBSERVABILITY linkage handle (US-QA-D23, ADR-0042): the id of the
+    :class:`~app.agent.trace.RunTrace` opened for this turn, which resolves to the emitted
+    ``docs/qa/obs/results/<run_id>.jsonl`` trace (prompt + tool calls + tokens + cost). It
+    is ``None`` only when tracing is disabled (``OBS_ENABLED=false`` -> no trace opened), so
+    a failing eval/E2E case can always carry the id back to its trace when obs is on.
+    """
 
     conversation_id: str
     final_text: str
@@ -58,6 +65,7 @@ class TurnResult:
     awaiting_approval: bool
     approval_payload: dict[str, Any] | None
     citations: list[dict[str, Any]] = field(default_factory=list)
+    run_id: str | None = None
 
 
 def _pending_interrupt(graph: Any, config: dict[str, Any]) -> dict[str, Any] | None:
@@ -133,6 +141,11 @@ def run_turn(
     # calls (tokens/cost), and the final disposition (US-E7-04, ADR-0042 §D1). A tracing
     # fault never breaks the turn; tracing is a pure no-op when OBS_ENABLED is false.
     with trace_turn(conversation_id=conversation_id):
+        # The obs linkage handle for this turn (US-QA-D23): the run_id of the trace just
+        # opened, which resolves to docs/qa/obs/results/<run_id>.jsonl. None when obs is off.
+        active = current_trace()
+        run_id = active.run_id if active is not None else None
+
         result = graph.invoke(user_turn(text), config)
 
         interrupt_payload = _pending_interrupt(graph, config)
@@ -146,10 +159,11 @@ def run_turn(
                 action=None,
                 awaiting_approval=True,
                 approval_payload=interrupt_payload,
+                run_id=run_id,
             )
 
         set_disposition(_disposition_of(result))
-        return _finalize(session, conversation_id, result)
+        return _finalize(session, conversation_id, result, run_id=run_id)
 
 
 def resume_turn(
@@ -179,9 +193,11 @@ def resume_turn(
     if ship_address is not None:
         resume_value["ship_address"] = ship_address
     with trace_turn(conversation_id=conversation_id):
+        active = current_trace()
+        run_id = active.run_id if active is not None else None
         result = compiled_graph.invoke(Command(resume=resume_value), config)
         set_disposition(_disposition_of(result))
-        return _finalize(session, conversation_id, result)
+        return _finalize(session, conversation_id, result, run_id=run_id)
 
 
 _FALLBACK_MARKER = "I wasn't able to finish that"
@@ -205,7 +221,11 @@ def _disposition_of(result: dict[str, Any]) -> str:
 
 
 def _finalize(
-    session: Session, conversation_id: str, result: dict[str, Any]
+    session: Session,
+    conversation_id: str,
+    result: dict[str, Any],
+    *,
+    run_id: str | None = None,
 ) -> TurnResult:
     """Persist the assistant message and package the terminal result."""
     final_text = result.get("final_text", "")
@@ -224,6 +244,7 @@ def _finalize(
         awaiting_approval=False,
         approval_payload=None,
         citations=citations,
+        run_id=run_id,
     )
 
 

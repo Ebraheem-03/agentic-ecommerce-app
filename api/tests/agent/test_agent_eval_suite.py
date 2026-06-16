@@ -132,6 +132,9 @@ def _eval_goal_accuracy(seeded_db: SeededDb, handles: ResolvedHandles) -> AreaRe
     """Did each scripted journey reach its intended goal? (deterministic, gates in CI)."""
     traces: list[Defect] = []
     results: list[GoalResult] = []
+    # Map a journey name -> the obs run_id of the turn that produced it (US-QA-D23 linkage),
+    # so a missed-goal Defect can carry the run_id that resolves to its emitted trace.
+    run_ids: dict[str, str | None] = {}
     mug_variant = handles.variant_ids["mug_in_stock"]
 
     with _session(seeded_db) as s:
@@ -153,6 +156,7 @@ def _eval_goal_accuracy(seeded_db: SeededDb, handles: ResolvedHandles) -> AreaRe
             deps_overrides={"classifier": _Route("shopping"), "planner": buy_planner},
         )
         s.commit()
+        run_ids["buy_intent"] = r_buy.run_id
         actual_buy = classify_outcome(
             final_text=r_buy.final_text,
             action=r_buy.action,
@@ -180,6 +184,7 @@ def _eval_goal_accuracy(seeded_db: SeededDb, handles: ResolvedHandles) -> AreaRe
             },
         )
         s.commit()
+        run_ids["injection"] = r_inj.run_id
         actual_inj = classify_outcome(
             final_text=r_inj.final_text,
             action=r_inj.action,
@@ -220,6 +225,7 @@ def _eval_goal_accuracy(seeded_db: SeededDb, handles: ResolvedHandles) -> AreaRe
                     area="goal_accuracy",
                     kind="missed_goal",
                     detail=f"{r.journey}: expected {r.expected!r} got {r.actual!r}",
+                    run_id=run_ids.get(r.journey),
                 )
             )
     return AreaResult(
@@ -287,6 +293,7 @@ def _eval_loop_termination(seeded_db: SeededDb, handles: ResolvedHandles) -> Are
                         area="loop_termination",
                         kind="fallback",
                         detail=f"{name} ended on the step-budget fallback (did not terminate)",
+                        run_id=r.run_id,
                     )
                 )
             # The looping journey must not have re-run its identical search more than once.
@@ -308,6 +315,7 @@ def _eval_loop_termination(seeded_db: SeededDb, handles: ResolvedHandles) -> Are
                             area="loop_termination",
                             kind="repeat_executed",
                             detail=f"identical search ran {searches}x (guard should skip repeats)",
+                            run_id=r.run_id,
                         )
                     )
 

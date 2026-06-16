@@ -150,7 +150,14 @@ def merch_quality_smoke(
 # Report types — one per area + the roll-up.                                     #
 # --------------------------------------------------------------------------- #
 class Defect(BaseModel):
-    """A tracked failing trace (clear, not silent). ``kind`` pins WHAT failed."""
+    """A tracked failing trace (clear, not silent). ``kind`` pins WHAT failed.
+
+    ``run_id`` is the OBSERVABILITY linkage (US-QA-D23, ADR-0042): the id of the agent run
+    whose trace (``docs/qa/obs/results/<run_id>.jsonl``) carries the prompt, tool calls,
+    token counts, and cost for the exact run that produced this failure. It is threaded from
+    ``TurnResult.run_id`` (``trace.current_trace()``); ``None`` only when the failure has no
+    single owning run (e.g. an aggregate metric) or tracing was disabled.
+    """
 
     model_config = ConfigDict(frozen=True)
 
@@ -158,6 +165,7 @@ class Defect(BaseModel):
     kind: str
     detail: str
     hard: bool = True
+    run_id: str | None = None
 
 
 class AreaResult(BaseModel):
@@ -245,10 +253,15 @@ def render_markdown(report: D17EvalReport, *, generated_at: str) -> str:
         )
     lines += ["", "## Failing traces", ""]
     if report.defects:
-        lines += ["| Area | Kind | Hard | Detail |", "|---|---|---|---|"]
+        lines += [
+            "| Area | Kind | Hard | Run (trace) | Detail |",
+            "|---|---|---|---|---|",
+        ]
         for d in report.defects:
+            trace_ref = f"`{d.run_id}.jsonl`" if d.run_id else "—"
             lines.append(
-                f"| {d.area} | {d.kind} | {'yes' if d.hard else 'no (smoke)'} | {d.detail} |"
+                f"| {d.area} | {d.kind} | {'yes' if d.hard else 'no (smoke)'} | "
+                f"{trace_ref} | {d.detail} |"
             )
     else:
         lines.append("_None._")
