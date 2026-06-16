@@ -62,7 +62,7 @@ export function ProductBuyBox({ product }: { product: ProductDetail }): JSX.Elem
     // Optimistic: flash the confirmation first.
     setAddState("added");
     try {
-      await addToCart({ variant_id: activeVariant.id, quantity: qty });
+      await addToCart({ variant_id: activeVariant.id, qty });
       // Keep the confirmation; clear it after a beat.
       window.setTimeout(() => setAddState("idle"), 2600);
     } catch (err) {

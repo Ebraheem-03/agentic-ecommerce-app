@@ -1,12 +1,18 @@
-import { PlaceholderPage } from "@/components/shell/PlaceholderPage";
+import type { Metadata } from "next";
+import { CartView } from "@/components/cart/CartView";
+
+export const metadata: Metadata = {
+  title: "Your cart · Hearth",
+};
 
 export default function CartPage(): JSX.Element {
   return (
-    <PlaceholderPage
-      testId="cart-page"
-      eyebrow="Cart"
-      title="Your cart is coming together"
-      body="Optimistic cart updates and the agentic checkout hand-off arrive in a later story. The route is live so the buy journey is connected."
-    />
+    <section data-testid="cart-page" className="py-8 sm:py-10">
+      <header className="mb-8">
+        <p className="text-caption font-medium uppercase tracking-wide text-accent-text">Cart</p>
+        <h1 className="mt-1 font-display text-h1 font-semibold text-text">Your cart</h1>
+      </header>
+      <CartView />
+    </section>
   );
 }
