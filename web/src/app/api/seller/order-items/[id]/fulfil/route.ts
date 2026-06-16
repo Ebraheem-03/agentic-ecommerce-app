@@ -1,34 +1,63 @@
 import { NextResponse } from "next/server";
-import type { Envelope, FulfilRequest, SellerFulfilItem } from "@/lib/api-types";
-import { fulfilItem } from "@/lib/mock/seller";
+import type {
+  Envelope,
+  FulfilRequest,
+  OrderSummary,
+  SellerFulfilItem,
+} from "@/lib/api-types";
+import { apiFetch } from "@/lib/api";
+import { readJson, requireToken, toErrorResponse } from "@/lib/proxy";
 
-// MOCK until the returns/seller backend lands (Day-22 scope call; ADR-0040).
 /**
- * MOCK `PATCH /seller/order-items/{id}/fulfil` → the updated line (200) — mark a
- * line fulfilled/cancelled. Mutates the shared mock seller store (ADR-0037). At
- * the W3 gate this proxies the contract endpoint (which returns `OrderSummary`).
+ * LIVE `PATCH /seller/order-items/{id}/fulfil` (Day-24 flip-to-live, ADR-0040).
+ * Mark a line fulfilled / cancelled (partial fulfilment allowed; `pending` is
+ * not a valid target → 422). Errors (403/404/422) flow through the canonical
+ * envelope so the UI can branch on the `code`.
+ *
+ * KNOWN BACKEND GAP (flagged for Atlas/Orion): the backend returns the whole
+ * `OrderSummary` (NO line snapshots), and the seller cannot read the buyer's
+ * order detail (`GET /orders/{id}` is buyer-owner-scoped → 404). So we cannot
+ * return the FULL updated line. We echo a `SellerFulfilItem` carrying the line
+ * `id` + the requested `fulfil_status` (the only field that changed) so the
+ * optimistic `FulfilRow` reconcile stays correct on the fields it controls; the
+ * snapshot fields are filled from the request context where known and otherwise
+ * left blank. The dashboard's fulfil table has no live row source today anyway
+ * (see `@/lib/adapters/seller`), so this path is effectively unreachable from
+ * the UI until the backend exposes seller-scoped order LINES.
  */
+export const dynamic = "force-dynamic";
+
 export async function PATCH(
   request: Request,
   ctx: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const auth = requireToken();
+  if ("response" in auth) return auth.response;
   const { id } = await ctx.params;
-  let body: FulfilRequest;
+
+  const parsed = await readJson<FulfilRequest>(request);
+  if ("response" in parsed) return parsed.response;
+
   try {
-    body = (await request.json()) as FulfilRequest;
-  } catch {
-    return NextResponse.json(
-      { error: { code: "validation_error", message: "Invalid request body.", details: null } },
-      { status: 422 },
+    const summaryEnv = await apiFetch<OrderSummary>(
+      `/seller/order-items/${id}/fulfil`,
+      { method: "PATCH", body: parsed.body, token: auth.token },
     );
+    // The live backend returns only the OrderSummary; reflect the change on the
+    // line the UI reconciles against (id + new status; snapshots unavailable).
+    const item: SellerFulfilItem = {
+      id,
+      order_number: summaryEnv.data.order_number,
+      title_snapshot: "",
+      options_snapshot: {},
+      qty: 0,
+      unit_price_minor: 0,
+      currency: summaryEnv.data.currency,
+      fulfil_status: parsed.body.fulfil_status,
+    };
+    const envelope: Envelope<SellerFulfilItem> = { data: item, meta: null };
+    return NextResponse.json(envelope);
+  } catch (err) {
+    return toErrorResponse(err, "Could not update fulfilment.");
   }
-  const item = fulfilItem(id, body.fulfil_status);
-  if (!item) {
-    return NextResponse.json(
-      { error: { code: "not_found", message: "That order line no longer exists.", details: null } },
-      { status: 404 },
-    );
-  }
-  const envelope: Envelope<SellerFulfilItem> = { data: item, meta: null };
-  return NextResponse.json(envelope);
 }
