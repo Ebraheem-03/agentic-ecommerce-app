@@ -1,50 +1,30 @@
 import { NextResponse } from "next/server";
-import type { Envelope, PaymentConfirmRequest, PaymentOut } from "@/lib/api-types";
-import { confirmPayment } from "@/lib/mock/orders";
+import type { PaymentConfirmRequest } from "@/lib/api-types";
+import { shopApi } from "@/lib/api";
+import { readJson, requireToken, toErrorResponse } from "@/lib/proxy";
 
 /**
- * MOCK `POST /orders/{id}/payment-confirm` → `PaymentOut` (200) — step two of the
- * two-step test-mode payment. The decline is the CONTRACT switch, not an env flag:
- * `outcome="failed"` → `402 payment_declined`, the payment row lands `failed`, and
- * the order STAYS `placed` (unpaid) so the UI can offer a retry. `outcome="captured"`
- * (default) → success → the order advances to `packed`.
+ * LIVE `POST /orders/{id}/payment-confirm` → `PaymentOut` (200) — step two of the
+ * two-step test-mode payment. Proxied to the contract endpoint with the session
+ * token (Day-22 flip-to-live, ADR-0040). The decline is the CONTRACT switch
+ * (`outcome="failed"` → `402 payment_declined`); the backend owns it and we
+ * forward its error envelope as-is so the UI can offer a retry.
  */
 export async function POST(
   request: Request,
   ctx: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const auth = requireToken();
+  if ("response" in auth) return auth.response;
   const { id } = await ctx.params;
-  let body: PaymentConfirmRequest;
+
+  const parsed = await readJson<PaymentConfirmRequest>(request);
+  if ("response" in parsed) return parsed.response;
+
   try {
-    body = (await request.json()) as PaymentConfirmRequest;
-  } catch {
-    return NextResponse.json(
-      { error: { code: "validation_error", message: "Invalid request body.", details: null } },
-      { status: 422 },
-    );
+    const env = await shopApi.paymentConfirm(id, parsed.body, auth.token);
+    return NextResponse.json(env);
+  } catch (err) {
+    return toErrorResponse(err, "Could not confirm the payment.");
   }
-
-  const result = confirmPayment(id, body);
-  if (!result) {
-    return NextResponse.json(
-      { error: { code: "not_found", message: "We couldn't find that payment.", details: null } },
-      { status: 404 },
-    );
-  }
-
-  if (result.declined) {
-    return NextResponse.json(
-      {
-        error: {
-          code: "payment_declined",
-          message: "Your card was declined. No charge was made — you can try a different card.",
-          details: null,
-        },
-      },
-      { status: 402 },
-    );
-  }
-
-  const envelope: Envelope<PaymentOut> = { data: result.payment, meta: null };
-  return NextResponse.json(envelope);
 }

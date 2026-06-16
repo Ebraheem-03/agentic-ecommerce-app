@@ -52,7 +52,8 @@ export interface UserOut {
   email: string;
   display_name: string;
   role: UserRole;
-  email_verified: boolean;
+  /** Live `UserOut` carries `is_active` (Day-22 flip); there is no `email_verified`. */
+  is_active: boolean;
   created_at: string;
 }
 

@@ -1,29 +1,19 @@
-import type { MessageRequest } from "@/lib/api-types";
-import { buildScenario } from "@/lib/mock/agent-scenarios";
-import { scenarioToStream, wantsInstant } from "@/lib/mock/sse";
+import { proxyAgentStream } from "@/lib/agent-proxy";
 
 /**
- * MOCK `POST /agent/conversations/{id}/messages` → SSE stream (200).
- *
- * Follow-up turns in an existing conversation. Same locked event protocol and
- * scenario engine as the start handler; the contract also requires an
- * `Idempotency-Key` header on this route, which the SSE client sends — the mock
- * accepts it but does not need to dedupe. See conversations/route.ts for the
- * mock posture and the W3 flip-to-live note.
+ * LIVE `POST /agent/conversations/{id}/messages` → SSE stream (Day-22 flip,
+ * ADR-0040). Follow-up turns in an existing conversation, including the live
+ * checkout-approval interrupt path (interrupt → resume on Approve). Proxies to
+ * the live `:8000/agent/conversations/{id}/messages` with the session token +
+ * the `Idempotency-Key` header passed through; `done`-frame recommendations are
+ * flattened in the proxy, all other frames pass through unchanged.
  */
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request): Promise<Response> {
-  let body: MessageRequest;
-  try {
-    body = (await request.json()) as MessageRequest;
-  } catch {
-    return Response.json(
-      { error: { code: "validation_error", message: "Invalid request body.", details: null } },
-      { status: 422 },
-    );
-  }
-
-  const { frames } = buildScenario(body.message ?? "");
-  return scenarioToStream(frames, { instant: wantsInstant(request) });
+export async function POST(
+  request: Request,
+  ctx: { params: Promise<{ id: string }> },
+): Promise<Response> {
+  const { id } = await ctx.params;
+  return proxyAgentStream(request, `/agent/conversations/${id}/messages`);
 }

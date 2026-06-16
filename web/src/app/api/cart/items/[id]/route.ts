@@ -1,50 +1,46 @@
 import { NextResponse } from "next/server";
-import type { CartItemUpdate, CartOut, Envelope } from "@/lib/api-types";
-import { removeLine, setLineQty } from "@/lib/mock/cart";
+import type { CartItemUpdate } from "@/lib/api-types";
+import { shopApi } from "@/lib/api";
+import { readJson, requireToken, toErrorResponse } from "@/lib/proxy";
 
 /**
- * MOCK `PATCH /cart/items/{id}` (set absolute qty>0) + `DELETE /cart/items/{id}`
- * (remove the line) → `CartOut` (200). Mutates the shared mock cart store
- * (ADR-0037). At the W3 gate these proxy the contract `/cart/items/{id}`.
+ * LIVE `PATCH /cart/items/{id}` (set absolute qty>0) + `DELETE /cart/items/{id}`
+ * (remove the line) → `CartOut` (200). Proxies the contract endpoints with the
+ * session token (Day-22 flip-to-live, ADR-0040).
  */
 
 interface Ctx {
   params: Promise<{ id: string }>;
 }
 
-const notFound = (): NextResponse =>
-  NextResponse.json(
-    { error: { code: "not_found", message: "That cart line no longer exists.", details: null } },
-    { status: 404 },
-  );
-
 export async function PATCH(request: Request, ctx: Ctx): Promise<NextResponse> {
+  const auth = requireToken();
+  if ("response" in auth) return auth.response;
   const { id } = await ctx.params;
-  let body: CartItemUpdate;
+
+  const parsed = await readJson<CartItemUpdate>(request);
+  if ("response" in parsed) return parsed.response;
+
   try {
-    body = (await request.json()) as CartItemUpdate;
-  } catch {
-    return NextResponse.json(
-      { error: { code: "validation_error", message: "Invalid request body.", details: null } },
-      { status: 422 },
-    );
+    const env = await shopApi.updateCartItem(id, parsed.body, auth.token);
+    return NextResponse.json(env);
+  } catch (err) {
+    return toErrorResponse(err, "Could not update the cart.");
   }
-  if (!Number.isFinite(body.qty) || body.qty < 1) {
-    return NextResponse.json(
-      { error: { code: "validation_error", message: "Quantity must be at least 1.", details: null } },
-      { status: 422 },
-    );
-  }
-  const cart = setLineQty(id, body.qty);
-  if (!cart) return notFound();
-  const envelope: Envelope<CartOut> = { data: cart, meta: null };
-  return NextResponse.json(envelope);
 }
 
-export async function DELETE(_request: Request, ctx: Ctx): Promise<NextResponse> {
+export async function DELETE(
+  _request: Request,
+  ctx: Ctx,
+): Promise<NextResponse> {
+  const auth = requireToken();
+  if ("response" in auth) return auth.response;
   const { id } = await ctx.params;
-  const cart = removeLine(id);
-  if (!cart) return notFound();
-  const envelope: Envelope<CartOut> = { data: cart, meta: null };
-  return NextResponse.json(envelope);
+
+  try {
+    const env = await shopApi.removeCartItem(id, auth.token);
+    return NextResponse.json(env);
+  } catch (err) {
+    return toErrorResponse(err, "Could not remove that item.");
+  }
 }

@@ -1,24 +1,28 @@
 import { NextResponse } from "next/server";
-import type { Envelope, OrderDetail } from "@/lib/api-types";
-import { getOrder } from "@/lib/mock/orders";
+import { shopApi } from "@/lib/api";
+import { requireToken, toErrorResponse } from "@/lib/proxy";
 
 /**
- * MOCK `GET /orders/{id}` → `OrderDetail` (200) — order detail + the status
- * timeline source + per-item snapshots + payment status. Reads the shared mock
- * orders store (ADR-0037). At the W3 gate this proxies the contract `/orders/{id}`.
+ * LIVE `GET /orders/{id}` → `OrderDetail` (200) — order detail + status timeline
+ * source + per-item snapshots + payment status. Proxied to the contract endpoint
+ * with the session token (Day-22 flip-to-live, ADR-0040). `OrderDetail` already
+ * speaks `*_minor`, so no adapter mapping is needed; `return_eligible` is derived
+ * client-side (returns is deferred today).
  */
+export const dynamic = "force-dynamic";
+
 export async function GET(
   _request: Request,
   ctx: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const auth = requireToken();
+  if ("response" in auth) return auth.response;
   const { id } = await ctx.params;
-  const order = getOrder(id);
-  if (!order) {
-    return NextResponse.json(
-      { error: { code: "not_found", message: "We couldn't find that order.", details: null } },
-      { status: 404 },
-    );
+
+  try {
+    const env = await shopApi.getOrder(id, auth.token);
+    return NextResponse.json(env);
+  } catch (err) {
+    return toErrorResponse(err, "Could not load that order.");
   }
-  const envelope: Envelope<OrderDetail> = { data: order, meta: null };
-  return NextResponse.json(envelope);
 }

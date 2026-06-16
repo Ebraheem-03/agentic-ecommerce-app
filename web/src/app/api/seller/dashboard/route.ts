@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { Envelope, SellerDashboard } from "@/lib/api-types";
 import { getDashboard } from "@/lib/mock/seller";
 
+// MOCK until the returns/seller backend lands (Day-22 scope call; ADR-0040).
 /**
  * MOCK `GET /seller/dashboard` → the maker dashboard aggregate (a display-only
  * convenience that fans out to the contract's `GET /seller/orders` +

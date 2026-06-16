@@ -1,55 +1,64 @@
 import { NextResponse } from "next/server";
-import type {
-  CheckoutRequest,
-  Envelope,
-  OrderDetail,
-  OrderSummary,
-  PageMeta,
-} from "@/lib/api-types";
-import { checkout, listOrders } from "@/lib/mock/orders";
+import type { CheckoutRequest, Envelope, PageMeta } from "@/lib/api-types";
+import { shopApi } from "@/lib/api";
+import { toBackendAddress } from "@/lib/adapters/order";
+import { readJson, requireToken, toErrorResponse } from "@/lib/proxy";
 
 /**
- * MOCK `POST /orders` (checkout: open cart → order, idempotent) + `GET /orders`
- * (my orders list). Mutates/reads the shared mock orders store (ADR-0037). At
- * the W3 gate these proxy the contract `/orders` with the session token + the
- * `Idempotency-Key` header passed through server-side.
+ * LIVE `POST /orders` (checkout: open cart → order, idempotent) + `GET /orders`
+ * (my orders list). Proxied to the contract endpoints with the session token
+ * (Day-22 flip-to-live, ADR-0040).
+ *
+ * Address mapping (mismatch the flip surfaced): the FE form models the address
+ * as `{ name, country }`, but the live `AddressIn` requires
+ * `{ recipient_name, country_code }`. We translate via `toBackendAddress` so the
+ * checkout component is unchanged.
  */
+export const dynamic = "force-dynamic";
 
 export async function POST(request: Request): Promise<NextResponse> {
-  let body: CheckoutRequest;
-  try {
-    body = (await request.json()) as CheckoutRequest;
-  } catch {
-    return NextResponse.json(
-      { error: { code: "validation_error", message: "Invalid request body.", details: null } },
-      { status: 422 },
-    );
-  }
+  const auth = requireToken();
+  if ("response" in auth) return auth.response;
 
-  // Idempotency-Key header is preferred; the body field is the documented fallback.
+  const parsed = await readJson<CheckoutRequest>(request);
+  if ("response" in parsed) return parsed.response;
+
   const key =
-    request.headers.get("Idempotency-Key") ?? body.idempotency_key ?? null;
+    request.headers.get("Idempotency-Key") ??
+    parsed.body.idempotency_key ??
+    null;
 
-  const result = checkout(body.ship_address, key);
-  if ("error" in result) {
-    return NextResponse.json(
-      { error: { code: "empty_cart", message: "Your cart is empty.", details: null } },
-      { status: 409 },
+  try {
+    const env = await shopApi.checkout(
+      {
+        ship_address: toBackendAddress(parsed.body.ship_address),
+        idempotency_key: key,
+      },
+      auth.token,
+      key,
     );
+    // First creation is 201; an idempotent replay is 200. The backend signals
+    // this on its status — but `apiFetch` unwraps the body, so we report 201 for
+    // a fresh placement (the FE only branches on success, not the exact code).
+    return NextResponse.json(env, { status: 201 });
+  } catch (err) {
+    return toErrorResponse(err, "Could not place the order.");
   }
-
-  const envelope: Envelope<OrderDetail> = { data: result.order, meta: null };
-  // Replays return 200 with the original order; first creation returns 201.
-  return NextResponse.json(envelope, { status: result.replayed ? 200 : 201 });
 }
 
-export function GET(): NextResponse {
-  const orders = listOrders();
-  const meta: PageMeta = {
-    next_cursor: null,
-    limit: orders.length,
-    total: orders.length,
-  };
-  const envelope: Envelope<OrderSummary[]> = { data: orders, meta };
-  return NextResponse.json(envelope);
+export async function GET(): Promise<NextResponse> {
+  const auth = requireToken();
+  if ("response" in auth) return auth.response;
+
+  try {
+    const env = await shopApi.listOrders(auth.token);
+    const meta: PageMeta = env.meta ?? {
+      next_cursor: null,
+      limit: env.data.length,
+      total: env.data.length,
+    };
+    return NextResponse.json({ data: env.data, meta } satisfies Envelope<unknown>);
+  } catch (err) {
+    return toErrorResponse(err, "Could not load your orders.");
+  }
 }

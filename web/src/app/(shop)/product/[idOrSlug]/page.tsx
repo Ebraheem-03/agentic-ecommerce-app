@@ -21,8 +21,10 @@ interface PageProps {
   params: { idOrSlug: string };
 }
 
-export function generateMetadata({ params }: PageProps): Metadata {
-  const product = getProduct(params.idOrSlug);
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const product = await getProduct(params.idOrSlug);
   if (!product) return { title: "Not found · Hearth" };
   return {
     title: `${product.title} · ${product.maker} · Hearth`,
@@ -47,8 +49,10 @@ const TRUST = [
   "Breakage replaced free",
 ];
 
-export default function ProductPage({ params }: PageProps): JSX.Element {
-  const product = getProduct(params.idOrSlug);
+export default async function ProductPage({
+  params,
+}: PageProps): Promise<JSX.Element> {
+  const product = await getProduct(params.idOrSlug);
   if (!product) notFound();
 
   const [hero, ...thumbs] = product.images;

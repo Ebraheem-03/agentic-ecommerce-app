@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { Envelope, ReturnCreate, ReturnOut } from "@/lib/api-types";
 import { createReturn, listReturns } from "@/lib/mock/returns";
 
+// MOCK until the returns/seller backend lands (Day-22 scope call; ADR-0040).
 /**
  * MOCK `POST /orders/{id}/returns` → `ReturnOut` (201) + a cheap `GET` list.
  * Models the HITL path (ADR-0037): a return on an in-window order is `requested`;

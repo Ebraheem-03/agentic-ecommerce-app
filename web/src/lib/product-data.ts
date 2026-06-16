@@ -1,20 +1,29 @@
+import { ApiError, shopApi } from "@/lib/api";
+import { getSessionToken } from "@/lib/session";
+import { toProductDetail } from "@/lib/adapters/catalog";
 import type { ProductDetail } from "@/lib/api-types";
-import { findProduct } from "@/lib/mock/catalog";
 
 /**
- * Server-side product resolver for the detail route. Today it reads the MOCK
- * catalogue fixture directly (the live `GET /products/{id}` backend is on
- * `integration/agents`, not on this line). At the W3 gate this becomes an
- * `apiFetch<ProductDetail>("/products/{id}")` call with the session token, and
- * the page is unchanged — it already consumes the `ProductDetail` contract shape.
+ * Server-side product resolver for the detail route (Day-22 flip-to-live,
+ * ADR-0040). Calls the live `GET /products/{idOrSlug}` and maps the nested wire
+ * shape → the FE `ProductDetail` view-model via `toProductDetail`. The PDP page
+ * is unchanged in shape — it already consumes the flat `ProductDetail` (now
+ * `await`s this resolver since it's a network call).
+ *
+ * The endpoint is public; we attach the session token if present (harmless, and
+ * keeps the proxy posture consistent). A missing product → `null` so the page
+ * renders `notFound()`; any other fault also resolves to `null` rather than
+ * 500-ing the whole route.
  */
-export function getProduct(idOrSlug: string): ProductDetail | null {
-  const p = findProduct(idOrSlug);
-  if (!p) return null;
-  // Strip the mock-only fields (keywords/picked/tone) down to the contract shape.
-  const { keywords: _k, picked: _p, tone: _t, ...detail } = p;
-  void _k;
-  void _p;
-  void _t;
-  return detail;
+export async function getProduct(
+  idOrSlug: string,
+): Promise<ProductDetail | null> {
+  const token = getSessionToken();
+  try {
+    const { data } = await shopApi.product(idOrSlug, token ?? "");
+    return toProductDetail(data);
+  } catch (err) {
+    if (err instanceof ApiError) return null;
+    return null;
+  }
 }

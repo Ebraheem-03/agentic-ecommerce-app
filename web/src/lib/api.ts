@@ -1,11 +1,24 @@
 import type {
+  CartItemAdd,
+  CartItemUpdate,
+  CartOut,
   Envelope,
   ErrorBody,
   LoginRequest,
+  OrderDetail,
+  OrderSummary,
+  PaymentConfirmRequest,
+  PaymentIntentOut,
+  PaymentOut,
   RegisterRequest,
   SessionOut,
   UserOut,
 } from "@/lib/api-types";
+import type {
+  BackendProductDetail,
+  BackendSearchRow,
+} from "@/lib/adapters/catalog";
+import type { BackendAddressIn } from "@/lib/adapters/order";
 
 /**
  * Hearth API client.
@@ -53,8 +66,13 @@ interface RequestOptions {
   /** Bearer token to attach server-side (route handlers pass it from cookie). */
   token?: string | null;
   body?: unknown;
-  /** Forwarded to fetch (e.g. `cache: "no-store"` from server components). */
-  init?: Omit<RequestInit, "method" | "body" | "headers">;
+  /**
+   * Forwarded to fetch (e.g. `cache: "no-store"`). Extra `headers` here are
+   * merged onto the computed ones (used to pass `Idempotency-Key` through).
+   */
+  init?: Omit<RequestInit, "method" | "body"> & {
+    headers?: Record<string, string>;
+  };
 }
 
 /**
@@ -66,15 +84,17 @@ export async function apiFetch<T>(
   path: string,
   { method = "GET", token, body, init }: RequestOptions = {},
 ): Promise<Envelope<T>> {
+  const { headers: extraHeaders, ...restInit } = init ?? {};
   const headers: Record<string, string> = { Accept: "application/json" };
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (extraHeaders) Object.assign(headers, extraHeaders);
 
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
-    ...init,
+    ...restInit,
   });
 
   let payload: unknown = null;
@@ -117,5 +137,107 @@ export const authApi = {
   },
   me(token: string): Promise<Envelope<UserOut>> {
     return apiFetch<UserOut>("/auth/me", { method: "GET", token });
+  },
+};
+
+/**
+ * Typed shop operations against the live backend (server-side only). These are
+ * called by the `/api/*` route handlers, which hold the session token and map
+ * the (nested) wire shapes → the FE view-models via `@/lib/adapters/*`. The
+ * browser never calls these directly.
+ *
+ * Returns the RAW (nested) backend shapes — the route handler does the
+ * adapter mapping so the mapping stays in one obvious place.
+ */
+export const shopApi = {
+  /* catalog */
+  search(q: string, token: string): Promise<Envelope<BackendSearchRow[]>> {
+    return apiFetch<BackendSearchRow[]>(`/search?q=${encodeURIComponent(q)}`, {
+      token,
+      init: { cache: "no-store" },
+    });
+  },
+  product(
+    idOrSlug: string,
+    token: string,
+  ): Promise<Envelope<BackendProductDetail>> {
+    return apiFetch<BackendProductDetail>(
+      `/products/${encodeURIComponent(idOrSlug)}`,
+      { token, init: { cache: "no-store" } },
+    );
+  },
+
+  /* cart */
+  getCart(token: string): Promise<Envelope<CartOut>> {
+    return apiFetch<CartOut>("/cart", { token, init: { cache: "no-store" } });
+  },
+  addCartItem(body: CartItemAdd, token: string): Promise<Envelope<CartOut>> {
+    return apiFetch<CartOut>("/cart/items", { method: "POST", body, token });
+  },
+  updateCartItem(
+    id: string,
+    body: CartItemUpdate,
+    token: string,
+  ): Promise<Envelope<CartOut>> {
+    return apiFetch<CartOut>(`/cart/items/${id}`, {
+      method: "PATCH",
+      body,
+      token,
+    });
+  },
+  removeCartItem(id: string, token: string): Promise<Envelope<CartOut>> {
+    return apiFetch<CartOut>(`/cart/items/${id}`, { method: "DELETE", token });
+  },
+
+  /* orders + payments */
+  checkout(
+    body: { ship_address: BackendAddressIn; idempotency_key?: string | null },
+    token: string,
+    idempotencyKey: string | null,
+  ): Promise<Envelope<OrderDetail>> {
+    return apiFetch<OrderDetail>("/orders", {
+      method: "POST",
+      body,
+      token,
+      init: idempotencyKey
+        ? { headers: { "Idempotency-Key": idempotencyKey } }
+        : undefined,
+    });
+  },
+  listOrders(token: string): Promise<Envelope<OrderSummary[]>> {
+    return apiFetch<OrderSummary[]>("/orders", {
+      token,
+      init: { cache: "no-store" },
+    });
+  },
+  getOrder(id: string, token: string): Promise<Envelope<OrderDetail>> {
+    return apiFetch<OrderDetail>(`/orders/${id}`, {
+      token,
+      init: { cache: "no-store" },
+    });
+  },
+  paymentIntent(
+    orderId: string,
+    token: string,
+    idempotencyKey: string | null,
+  ): Promise<Envelope<PaymentIntentOut>> {
+    return apiFetch<PaymentIntentOut>(`/orders/${orderId}/payment-intent`, {
+      method: "POST",
+      token,
+      init: idempotencyKey
+        ? { headers: { "Idempotency-Key": idempotencyKey } }
+        : undefined,
+    });
+  },
+  paymentConfirm(
+    orderId: string,
+    body: PaymentConfirmRequest,
+    token: string,
+  ): Promise<Envelope<PaymentOut>> {
+    return apiFetch<PaymentOut>(`/orders/${orderId}/payment-confirm`, {
+      method: "POST",
+      body,
+      token,
+    });
   },
 };

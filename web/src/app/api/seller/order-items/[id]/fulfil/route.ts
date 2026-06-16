@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { Envelope, FulfilRequest, SellerFulfilItem } from "@/lib/api-types";
 import { fulfilItem } from "@/lib/mock/seller";
 
+// MOCK until the returns/seller backend lands (Day-22 scope call; ADR-0040).
 /**
  * MOCK `PATCH /seller/order-items/{id}/fulfil` → the updated line (200) — mark a
  * line fulfilled/cancelled. Mutates the shared mock seller store (ADR-0037). At
