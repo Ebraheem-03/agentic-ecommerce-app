@@ -24,9 +24,9 @@ from sqlalchemy.orm import Session
 
 from app.agent import persistence
 from app.agent.brains import IntentResult, PlannerStep, ToolCall
-from app.agent.graph import build_graph
+from app.agent.graph import MAX_PLAN_STEPS, build_graph
 from app.agent.runner import resume_turn, run_turn
-from app.db.models import Order, User
+from app.db.models import AgentAction, Order, User
 from tests.conftest import ResolvedHandles, SeededDb
 from tests.fixtures.handles import PERSONAS
 
@@ -152,6 +152,76 @@ def test_shopping_discovery_turn_persists(
         assert convo is not None
         roles = [m.role for m in sorted(convo.messages, key=lambda m: m.created_at)]
         assert roles == ["user", "assistant"]
+
+
+# --------------------------------------------------------------------------- #
+# DEFECT-D22-01 — planner loop-guard regression (ADR-0042 §D2).                 #
+# --------------------------------------------------------------------------- #
+class LoopingPlanner:
+    """A planner that ALWAYS re-issues the identical search call (never flips to reply).
+
+    Reproduces DEFECT-D22-01 key-free: under the real Groq model the
+    ``LLMShoppingPlanner`` re-emitted the same ``search(...)`` every step and never replied,
+    burning ``MAX_PLAN_STEPS`` into the generic fallback. This brain models that exact
+    pathology so the loop-guard's behavior is locked in CI without a provider key.
+    """
+
+    def __init__(self, query: str = "leather wallet") -> None:
+        self._query = query
+        self.calls = 0
+
+    def plan(self, history: list[Any], tool_results: list[str]) -> PlannerStep:
+        self.calls += 1
+        # Always the SAME tool call, regardless of accumulated tool_results — the bug.
+        return PlannerStep(
+            tool_calls=[ToolCall(name="search", args={"query": self._query})]
+        )
+
+
+def test_looping_planner_terminates_with_real_reply(
+    seeded_db: SeededDb, handles: ResolvedHandles
+) -> None:
+    """A planner stuck re-issuing the identical search FORCES a grounded reply, not the
+    generic fallback — and never exceeds the step budget (DEFECT-D22-01 loop-guard).
+
+    Asserts: (1) the turn ends with a real grounded reply, NOT the
+    ``"I wasn't able to finish that"`` dead-end; (2) the identical search ran exactly ONCE
+    (the guard skips re-execution); (3) the planner was consulted at most twice — once to
+    issue the call, once to detect the no-progress repeat — well under ``MAX_PLAN_STEPS``.
+    """
+    user = _user(seeded_db, handles, "buyer_primary")
+    classifier = StubClassifier(IntentResult(route="shopping", confidence=0.9))
+    planner = LoopingPlanner(query="wallet")
+    with _session(seeded_db) as session:
+        result = run_turn(
+            session=session,
+            user=user,
+            text="show me a wallet",
+            deps_overrides={"classifier": classifier, "planner": planner},
+        )
+        convo_id = result.conversation_id
+        session.commit()
+        # The identical search executed exactly once (audited) — the guard skips the repeat.
+        searches = (
+            session.scalar(
+                select(func.count())
+                .select_from(AgentAction)
+                .where(
+                    AgentAction.conversation_id == convo_id,
+                    AgentAction.action_type == "search",
+                )
+            )
+            or 0
+        )
+
+    # Terminates with a REAL reply, not the generic budget-exhausted apology.
+    assert "I wasn't able to finish that" not in result.final_text
+    assert result.final_text.strip() != ""
+    assert "search" in result.final_text  # grounded in the actual tool result
+    # The repeated call ran once, and the planner stalled in <= 2 steps (far under budget).
+    assert searches == 1
+    assert planner.calls <= 2
+    assert planner.calls < MAX_PLAN_STEPS
 
 
 # --------------------------------------------------------------------------- #

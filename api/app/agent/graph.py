@@ -34,6 +34,7 @@ graph config (``configurable``), never taken from the LLM.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Annotated, Any, Literal, cast
@@ -78,6 +79,7 @@ from app.agent.merch import (
     policy_content_version,
 )
 from app.agent.tools import DraftOrderInput, OrderStatusInput, RefundInput, ToolName
+from app.agent.trace import node_span, set_route
 from app.core.errors import APIError
 from app.db.models import User
 from app.schemas.agent import MerchDraftOut
@@ -194,6 +196,7 @@ def _classify_result(result: IntentResult) -> dict[str, Any]:
     clarifying = result.confidence < CLARIFY_THRESHOLD
     # Ambiguity fallback: low confidence -> shopping agent with a clarifying turn.
     route = "shopping" if clarifying else result.route
+    set_route(route)  # observability (best-effort): record the routing decision.
     return {"route": route, "confidence": result.confidence, "clarifying": clarifying}
 
 
@@ -222,9 +225,52 @@ def _clarify_node(state: AgentState, config: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _tool_call_signature(name: str, args: dict[str, Any]) -> str:
+    """A normalized, order-independent key for a tool call (name + canonical args).
+
+    The loop-guard tracks calls by this signature so an IDENTICAL re-issued call (same
+    tool, same args, regardless of dict insertion order) is recognized as a repeat and is
+    NOT re-executed — the provider-agnostic defense against DEFECT-D22-01 where the live
+    planner re-emits the same ``search(...)`` every step.
+    """
+    try:
+        canonical = json.dumps(args, sort_keys=True, default=str)
+    except (TypeError, ValueError):  # pragma: no cover - defensive: unhashable arg shapes
+        canonical = repr(sorted(args.items()))
+    return f"{name}:{canonical}"
+
+
+def _synthesize_reply(tool_results: list[str]) -> str:
+    """A grounded fallback reply built from EXISTING tool results when the planner stalls.
+
+    DEFECT-D22-01: a misbehaving planner that keeps re-issuing the same call (never
+    flipping to ``reply``) used to exhaust the step budget and hit the generic graceful
+    fallback. With the loop-guard we instead FORCE a reply from what we already retrieved,
+    so the turn terminates with real, grounded content rather than a dead-end apology.
+    """
+    if not tool_results:
+        return "Let me know what you'd like to do next."
+    return (
+        "Here's what I found for you:\n"
+        + "\n".join(tool_results)
+        + "\nLet me know if you'd like details on any of these or want to add one to your cart."
+    )
+
+
 def _shopping_node(state: AgentState, config: dict[str, Any]) -> dict[str, Any]:
     """Plan-execute shopping turn: discovery/cart tools, then either reply or propose
-    checkout (which leads to the approval interrupt). Order placement is NOT done here."""
+    checkout (which leads to the approval interrupt). Order placement is NOT done here.
+
+    LOOP-GUARD (DEFECT-D22-01, ADR-0042 §D2 — provider-agnostic). The live planner can
+    re-issue the IDENTICAL tool call every step without ever flipping to ``reply``. To stop
+    that burning the whole step budget into the generic fallback we:
+      * track each issued call by its normalized signature;
+      * never RE-EXECUTE an identical call (it would just waste a step + repeat the result);
+      * once ``tool_results`` exist and a step makes NO PROGRESS (issues only repeats, or
+        issues no new tool call and doesn't reply/propose), FORCE a grounded reply
+        synthesized from the results we already have.
+    Legitimate multi-tool and checkout-proposal paths are untouched — only a stalled,
+    repeating planner is short-circuited."""
     deps = _deps(config)
     history = list(state["messages"])
 
@@ -236,12 +282,31 @@ def _shopping_node(state: AgentState, config: dict[str, Any]) -> dict[str, Any]:
 
     planner = deps.planner or LLMShoppingPlanner(_require_model(config))
     tool_results: list[str] = []
+    seen_calls: set[str] = set()
 
     for _ in range(MAX_PLAN_STEPS):
         step: PlannerStep = planner.plan(history, tool_results)
         if step.tool_calls:
-            for call in step.tool_calls:
+            # Run only NOT-yet-seen calls; an identical re-issue is skipped (no wasted step
+            # re-running it). If every call this step is a repeat, the planner made no
+            # progress — and once we already have results, force a grounded reply instead
+            # of looping toward the budget exhaustion / generic fallback.
+            new_calls = [
+                call
+                for call in step.tool_calls
+                if _tool_call_signature(call.name, dict(call.args)) not in seen_calls
+            ]
+            if not new_calls and tool_results:
+                text = _synthesize_reply(tool_results)
+                return {
+                    "final_text": text,
+                    "messages": [AIMessage(content=text)],
+                    "action": None,
+                }
+            for call in new_calls:
+                seen_calls.add(_tool_call_signature(call.name, dict(call.args)))
                 tool_results.append(_run_shopping_tool(deps, call.name, dict(call.args)))
+            # Either ran new calls, or repeated calls with no results yet — plan again.
             continue
         if step.propose_checkout:
             return {
@@ -255,8 +320,12 @@ def _shopping_node(state: AgentState, config: dict[str, Any]) -> dict[str, Any]:
             "action": None,
         }
 
-    # Step budget exhausted — fail gracefully rather than loop.
-    text = "I wasn't able to finish that — could you rephrase what you're after?"
+    # Step budget exhausted. If we gathered results along the way, terminate with a grounded
+    # reply (DEFECT-D22-01); only a wholly empty run falls back to the generic apology.
+    if tool_results:
+        text = _synthesize_reply(tool_results)
+    else:
+        text = "I wasn't able to finish that — could you rephrase what you're after?"
     return {"final_text": text, "messages": [AIMessage(content=text)], "action": None}
 
 
@@ -684,9 +753,15 @@ def build_graph(checkpointer: BaseCheckpointSaver[Any] | None = None) -> Any:
     g: StateGraph = StateGraph(AgentState)
 
     # Nodes take (state, config); langgraph adapts the 2-arg signature at runtime but its
-    # type stub only models the single-arg form, so cast through a local adder.
+    # type stub only models the single-arg form, so cast through a local adder. Every node
+    # is wrapped in a ``node_span`` so the trace records per-node latency (best-effort, a
+    # no-op outside a traced turn) without touching each node body (US-E7-04, ADR-0042 §D1).
     def _add(name: str, fn: Callable[[AgentState, dict[str, Any]], dict[str, Any]]) -> None:
-        g.add_node(name, cast("Callable[[Any], Any]", fn))
+        def _traced(state: AgentState, config: dict[str, Any]) -> dict[str, Any]:
+            with node_span(name):
+                return fn(state, config)
+
+        g.add_node(name, cast("Callable[[Any], Any]", _traced))
 
     _add("classify", _classify_node)
     _add("clarify", _clarify_node)

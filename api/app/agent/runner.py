@@ -37,6 +37,7 @@ from app.agent.graph import (
     make_config,
     user_turn,
 )
+from app.agent.trace import set_disposition, trace_turn
 from app.db.models import User
 from app.schemas.agent import AgentActionOut, DoneEvent
 from app.schemas.enums import ConversationSurface, MessageRole
@@ -127,21 +128,28 @@ def run_turn(
         **overrides,
     )
     config = make_config(deps, thread_id=conversation_id)
-    result = graph.invoke(user_turn(text), config)
 
-    interrupt_payload = _pending_interrupt(graph, config)
-    if interrupt_payload is not None:
-        # Paused at the approval gate — DO NOT persist an assistant message yet; the turn
-        # finishes on approval/rejection. Surface the plan for the client to act on.
-        return TurnResult(
-            conversation_id=conversation_id,
-            final_text=interrupt_payload.get("summary", ""),
-            action=None,
-            awaiting_approval=True,
-            approval_payload=interrupt_payload,
-        )
+    # Observability (best-effort): one trace per turn — per-node spans, tool calls, model
+    # calls (tokens/cost), and the final disposition (US-E7-04, ADR-0042 §D1). A tracing
+    # fault never breaks the turn; tracing is a pure no-op when OBS_ENABLED is false.
+    with trace_turn(conversation_id=conversation_id):
+        result = graph.invoke(user_turn(text), config)
 
-    return _finalize(session, conversation_id, result)
+        interrupt_payload = _pending_interrupt(graph, config)
+        if interrupt_payload is not None:
+            # Paused at the approval gate — DO NOT persist an assistant message yet; the turn
+            # finishes on approval/rejection. Surface the plan for the client to act on.
+            set_disposition("checkout_proposed")
+            return TurnResult(
+                conversation_id=conversation_id,
+                final_text=interrupt_payload.get("summary", ""),
+                action=None,
+                awaiting_approval=True,
+                approval_payload=interrupt_payload,
+            )
+
+        set_disposition(_disposition_of(result))
+        return _finalize(session, conversation_id, result)
 
 
 def resume_turn(
@@ -170,8 +178,30 @@ def resume_turn(
     resume_value: dict[str, Any] = {"approved": approved}
     if ship_address is not None:
         resume_value["ship_address"] = ship_address
-    result = compiled_graph.invoke(Command(resume=resume_value), config)
-    return _finalize(session, conversation_id, result)
+    with trace_turn(conversation_id=conversation_id):
+        result = compiled_graph.invoke(Command(resume=resume_value), config)
+        set_disposition(_disposition_of(result))
+        return _finalize(session, conversation_id, result)
+
+
+_FALLBACK_MARKER = "I wasn't able to finish that"
+
+
+def _disposition_of(result: dict[str, Any]) -> str:
+    """Classify the turn's terminal disposition for the trace (US-E7-04).
+
+    reply | clarify | refusal | fallback. (checkout_proposed is set on the interrupt path.)
+    A refused-outcome action -> ``refusal``; the clarifying flag -> ``clarify``; the
+    graceful step-budget apology -> ``fallback``; otherwise a plain ``reply``.
+    """
+    action = result.get("action")
+    if isinstance(action, dict) and action.get("outcome") == "refused":
+        return "refusal"
+    if result.get("clarifying"):
+        return "clarify"
+    if _FALLBACK_MARKER in str(result.get("final_text", "")):
+        return "fallback"
+    return "reply"
 
 
 def _finalize(

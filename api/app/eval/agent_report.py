@@ -267,12 +267,14 @@ def render_markdown(report: D17EvalReport, *, generated_at: str) -> str:
 
 
 def write_report_artifact(
-    report: D17EvalReport, *, results_dir: Path | None = None
+    report: D17EvalReport, *, results_dir: Path | None = None, prefix: str = "agent-eval"
 ) -> tuple[Path, Path]:
     """Write the dated + ``-latest`` report artifacts (JSON + MD); return (json, md) paths.
 
-    Gitignored (``docs/qa/eval/results/agent-eval-*``), like the RAGAS/smoke/regression
-    artifacts — only the committed README note stays under version control.
+    Gitignored (``docs/qa/eval/results/<prefix>-*``), like the RAGAS/smoke/regression
+    artifacts — only the committed README note stays under version control. ``prefix``
+    lets distinct report families (Day-17 ``agent-eval`` vs Day-23 ``agent-eval-suite``)
+    write side-by-side without clobbering each other's ``-latest``.
     """
     out_dir = results_dir or RESULTS_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -284,12 +286,12 @@ def write_report_artifact(
     json_text = json.dumps(payload, indent=2, default=str) + "\n"
     md_text = render_markdown(report, generated_at=generated_at)
 
-    dated_json = out_dir / f"agent-eval-{date}.json"
-    dated_md = out_dir / f"agent-eval-{date}.md"
+    dated_json = out_dir / f"{prefix}-{date}.json"
+    dated_md = out_dir / f"{prefix}-{date}.md"
     dated_json.write_text(json_text, encoding="utf-8")
     dated_md.write_text(md_text, encoding="utf-8")
-    (out_dir / "agent-eval-latest.json").write_text(json_text, encoding="utf-8")
-    (out_dir / "agent-eval-latest.md").write_text(md_text, encoding="utf-8")
+    (out_dir / f"{prefix}-latest.json").write_text(json_text, encoding="utf-8")
+    (out_dir / f"{prefix}-latest.md").write_text(md_text, encoding="utf-8")
     return dated_json, dated_md
 
 
@@ -301,16 +303,94 @@ def all_tools(*sequences: Iterable[str]) -> list[str]:
     return out
 
 
+# =========================================================================== #
+# US-E7-05 (ADR-0042 §D3) — goal accuracy + loop-termination scoring.          #
+# =========================================================================== #
+# These extend the Day-17 report layer (same AreaResult/Defect shapes) with the two
+# Day-23 structural metrics. Both are DETERMINISTIC over scripted journeys, so they HARD-
+# GATE in CI key-free (the ADR-0042 §D3 posture); the live-LLM goal accuracy + the RAGAS
+# numeric floors arm only on the local live-judge run (the existing ``is_armed`` seam).
+
+# The intended terminal outcome for a scripted journey (what "reaching the goal" means).
+GoalOutcome = str  # "checkout_proposed" | "refusal" | "cited_answer" | "reply"
+
+
+class GoalResult(BaseModel):
+    """One journey's goal-accuracy verdict: did the agent reach the INTENDED outcome?"""
+
+    model_config = ConfigDict(frozen=True)
+
+    journey: str
+    intent: str
+    expected: GoalOutcome
+    actual: GoalOutcome
+    reached: bool
+
+
+def classify_outcome(
+    *,
+    final_text: str,
+    action: dict[str, object] | None,
+    awaiting_approval: bool,
+    citations: list[dict[str, object]] | None,
+) -> GoalOutcome:
+    """Deterministically classify a turn's terminal outcome from its structural signals.
+
+    The SAME taxonomy the runtime trace uses (ADR-0042 §D1), derived structurally (never a
+    lexical scan of the reply): an approval pause -> ``checkout_proposed``; a refused-outcome
+    action -> ``refusal``; a grounded answer with citations -> ``cited_answer``; otherwise a
+    plain ``reply``. The ``"I wasn't able to finish that"`` fallback is a non-goal ``reply``
+    here (loop-termination is the metric that catches a fallback; see ``terminated_in_budget``).
+    """
+    if awaiting_approval:
+        return "checkout_proposed"
+    if isinstance(action, dict) and action.get("outcome") == "refused":
+        return "refusal"
+    if citations:
+        return "cited_answer"
+    return "reply"
+
+
+def goal_accuracy(results: list[GoalResult]) -> float:
+    """Fraction of journeys that reached their intended goal (1.0 == all reached)."""
+    if not results:
+        return 1.0
+    return round(sum(1 for r in results if r.reached) / len(results), 4)
+
+
+# The graceful step-budget fallback string (mirrors graph.py). A shopping journey that
+# ends on this did NOT terminate cleanly within budget — the DEFECT-D22-01 signal.
+FALLBACK_MARKER = "I wasn't able to finish that"
+
+
+def terminated_in_budget(*, final_text: str, awaiting_approval: bool) -> bool:
+    """True iff a shopping journey terminated with a real reply / checkout proposal.
+
+    The loop-termination metric (ADR-0042 §D2/§D3): a turn that ends on the graceful
+    step-budget fallback string did NOT terminate cleanly — that is the live planner loop
+    DEFECT-D22-01 the loop-guard fixes. A checkout proposal (approval pause) is a clean
+    terminal; any non-fallback reply is too.
+    """
+    if awaiting_approval:
+        return True
+    return FALLBACK_MARKER not in final_text
+
+
 __all__ = [
+    "FALLBACK_MARKER",
     "MERCH_QUALITY_FLOOR",
     "AreaResult",
     "D17EvalReport",
     "Defect",
     "F1Score",
+    "GoalResult",
     "all_tools",
+    "classify_outcome",
     "estimate_tokens",
+    "goal_accuracy",
     "merch_quality_smoke",
     "render_markdown",
+    "terminated_in_budget",
     "tool_call_f1",
     "write_report_artifact",
 ]

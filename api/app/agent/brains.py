@@ -22,11 +22,15 @@ graph structure real AND keeps CI key-free — the human's hard requirement.
 
 from __future__ import annotations
 
-from typing import Literal, Protocol
+import time
+from typing import Any, Literal, Protocol
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
+
+from app.agent.trace import record_model_call
+from app.core.config import settings
 
 # The three product agents the orchestrator routes to. shopping is built today;
 # support (Day 16) + merchandising (Day 17) are registered-but-deferred nodes.
@@ -140,6 +144,36 @@ class MerchBrain(Protocol):
 # --------------------------------------------------------------------------- #
 # Default LLM-backed implementations (used in prod; not exercised by CI).      #
 # --------------------------------------------------------------------------- #
+def _provider_model() -> tuple[str, str]:
+    """The configured runtime (provider, model) for the trace's model-call record."""
+    provider = settings.llm_provider
+    model = settings.gemini_model if provider == "gemini" else settings.groq_model
+    return provider, model
+
+
+def _invoke_traced(model: Any, ctx: list[BaseMessage], *, node: str) -> Any:
+    """Invoke the chat model and record the call on the ambient trace (best-effort).
+
+    Captures the rendered prompt, latency, and (when the response carries it) token usage
+    so the trace's model-call record is populated for a live provider; under a scripted
+    brain this path is never reached, so tokens record as null gracefully (US-E7-04).
+    """
+    prompt = "\n".join(str(getattr(m, "content", m)) for m in ctx)
+    provider, model_name = _provider_model()
+    t0 = time.perf_counter()
+    result = model.invoke(ctx)
+    latency_ms = (time.perf_counter() - t0) * 1000
+    record_model_call(
+        node=node,
+        provider=provider,
+        model=model_name,
+        prompt=prompt,
+        response=result,
+        latency_ms=latency_ms,
+    )
+    return result
+
+
 _CLASSIFY_SYSTEM = SystemMessage(
     content=(
         "You are the router for an e-commerce assistant. Classify the user's latest "
@@ -159,7 +193,7 @@ class LLMIntentClassifier:
         self._model = model.with_structured_output(IntentResult)
 
     def classify(self, history: list[BaseMessage]) -> IntentResult:
-        result = self._model.invoke([_CLASSIFY_SYSTEM, *history])
+        result = _invoke_traced(self._model, [_CLASSIFY_SYSTEM, *history], node="classify")
         assert isinstance(result, IntentResult)
         return result
 
@@ -193,7 +227,7 @@ class LLMShoppingPlanner:
             ctx.append(
                 SystemMessage(content="Tool results so far:\n" + "\n".join(tool_results))
             )
-        result = self._model.invoke(ctx)
+        result = _invoke_traced(self._model, ctx, node="shopping")
         assert isinstance(result, PlannerStep)
         return result
 
@@ -226,7 +260,7 @@ class LLMSupportBrain:
         self._model = model.with_structured_output(SupportPlan)
 
     def plan(self, history: list[BaseMessage]) -> SupportPlan:
-        result = self._model.invoke([_SUPPORT_SYSTEM, *history])
+        result = _invoke_traced(self._model, [_SUPPORT_SYSTEM, *history], node="support")
         assert isinstance(result, SupportPlan)
         return result
 
@@ -265,7 +299,7 @@ class LLMMerchBrain:
                     + "\n".join(comparables)
                 )
             )
-        result = self._model.invoke(ctx)
+        result = _invoke_traced(self._model, ctx, node="merchandising")
         assert isinstance(result, MerchListing)
         return result
 

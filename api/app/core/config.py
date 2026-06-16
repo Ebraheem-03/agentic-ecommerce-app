@@ -154,6 +154,18 @@ class Settings(BaseSettings):
     semantic_cache_classifier_ttl_s: int = 86_400
     semantic_cache_policy_ttl_s: int = 3_600
 
+    # ---- Observability / tracing (US-E7-04, ADR-0042 §D1) ------------------- #
+    # A LOCAL structured trace store for the agent runtime: per-run traces (per-node spans,
+    # tool calls, the model prompt + tokens_in/out + cost_usd + latency, the final
+    # disposition) are written to docs/qa/obs/results/<run>.jsonl (gitignored). NO external
+    # SaaS, NO API key, NO prompt/PII off-box — the key-free CI invariant holds. `obs_enabled`
+    # gates tracing entirely (off -> the runtime is a pure no-op). `obs_backend` is the
+    # DORMANT-seam selector: "local" (default, the only active path) or "langsmith" (a
+    # registered seam with NO hosted dependency — selecting it logs once + degrades to local,
+    # so a future hosted run is a one-flag change without a hard dep today).
+    obs_enabled: bool = True
+    obs_backend: str = "local"
+
     # Browser CORS allow-list for the API. Defaults to the local Next.js dev origin;
     # override via `HEARTH_CORS_ORIGINS` as a comma-separated list of origins, e.g.
     # `HEARTH_CORS_ORIGINS=https://app.example.com,https://admin.example.com`.

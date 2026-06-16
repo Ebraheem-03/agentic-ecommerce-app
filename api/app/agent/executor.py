@@ -71,6 +71,7 @@ from app.agent.tools import (
     ToolName,
     VariantStockOut,
 )
+from app.agent.trace import record_tool_call
 from app.core.errors import APIError
 from app.db.models import AgentAction, Order, User
 from app.schemas.cart import CartOut
@@ -447,7 +448,11 @@ def _audit(
     outcome: AgentOutcome,
     payload: dict[str, Any],
 ) -> None:
-    """Record one tool execution as an ``agent_actions`` row (best-effort, same txn)."""
+    """Record one tool execution as an ``agent_actions`` row (best-effort, same txn).
+
+    Also mirrors the call onto the current run trace (US-E7-04, ADR-0042 §D1) — a no-op
+    outside a traced turn and best-effort, so observability never affects the audit write.
+    """
     session.add(
         AgentAction(
             conversation_id=conversation_id,
@@ -458,6 +463,14 @@ def _audit(
         )
     )
     session.flush()
+    # Observability: record the tool call on the ambient turn trace (best-effort, no-op
+    # when untraced). Prefer the validated ``args`` summary from the payload if present.
+    args = payload.get("args")
+    record_tool_call(
+        name.value,
+        args if isinstance(args, dict) else {k: v for k, v in payload.items() if k != "args"},
+        outcome.value,
+    )
 
 
 def _audit_payload(args: BaseModel, status_code: int, *, replayed: bool) -> dict[str, Any]:
