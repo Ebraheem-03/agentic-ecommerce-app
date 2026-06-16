@@ -38,12 +38,14 @@ export const TID = {
     page: "search-page",
     input: "search-input",
     submit: "search-submit",
-    results: "search-results",
-    resultCard: "search-result-card",
-    resultTitle: "search-result-title",
-    resultPrice: "search-result-price",
-    emptyState: "search-empty-state",
-    filters: "search-filters",
+    // RETIRED (Day-20, US-QA-D20): the conversation-first rework (revised
+    // ADR-0036) routes keyword queries through the agent — the search-input seeds
+    // a turn, there is no static results GRID, and GET /api/search is gone. The
+    // grid anchors (search-results / -result-card / -result-title / -result-price
+    // / -empty-state / -filters) + the J-BUY-01 fixme skeleton that imported them
+    // were removed here and in docs/qa/test-ids.md. The "results" surface is now
+    // the inline agent-recommendation-card (+ -reason); the "empty" surface is the
+    // empty CONVERSATION (welcome + starters), asserted in ui-flows.spec.ts.
   },
   product: {
     page: "product-page",
@@ -112,5 +114,40 @@ export const TID = {
     policyTable: "admin-policy-table",
     guardrailEditor: "admin-guardrail-editor",
     guardrailSave: "admin-guardrail-save",
+  },
+  // Auth screens (US-QA-D18). Login + register forms and their labelled fields.
+  auth: {
+    loginPage: "login-page",
+    loginForm: "login-form",
+    loginEmail: "login-email",
+    loginPassword: "login-password",
+    loginSubmit: "login-submit",
+    loginError: "login-error",
+    registerPage: "register-page",
+    registerForm: "register-form",
+    registerName: "register-name",
+    registerEmail: "register-email",
+    registerPassword: "register-password",
+    registerRoleBuyer: "register-role-buyer",
+    registerRoleSeller: "register-role-seller",
+    registerSubmit: "register-submit",
+    registerError: "register-error",
+  },
+  // Page-root markers for routes beyond the home screen (US-QA-D18 route health).
+  page: {
+    search: "search-page",
+    cart: "cart-page",
+    checkout: "checkout-page",
+    orderStatus: "order-status-page",
+    seller: "seller-dashboard-page",
+  },
+  // App-shell controls registered by Iris's foundation (US-QA-D18). The shell is
+  // cross-screen like `agent-*`; these IDs are stable wherever the shell renders.
+  nav: {
+    accountMenu: "nav-account-menu",
+    signIn: "nav-sign-in",
+    register: "nav-register",
+    signOut: "nav-sign-out",
+    mobileTrigger: "nav-mobile-trigger",
   },
 } as const;

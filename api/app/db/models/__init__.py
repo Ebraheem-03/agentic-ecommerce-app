@@ -22,6 +22,7 @@ Importing this package registers every table on ``Base.metadata``.
 from __future__ import annotations
 
 from app.db.models.agent import AgentAction, Conversation, Message
+from app.db.models.cache import SemanticCacheEntry
 from app.db.models.cart import Cart, CartItem
 from app.db.models.catalog import (
     Inventory,
@@ -57,6 +58,7 @@ __all__ = [
     "Return",
     "ReturnItem",
     "Review",
+    "SemanticCacheEntry",
     "Session",
     "Store",
     "User",

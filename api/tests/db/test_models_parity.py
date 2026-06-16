@@ -31,7 +31,7 @@ import app.db.models  # noqa: F401 — registers all tables on Base.metadata
 from alembic import command
 from app.db.base import Base
 
-# 22 app tables (excl. alembic_version) — the full set the models own.
+# 23 app tables (excl. alembic_version) — the full set the models own.
 OWNED_TABLES: frozenset[str] = frozenset(Base.metadata.tables)
 
 
@@ -43,8 +43,8 @@ def _sqla_url(dsn: str) -> str:
 
 
 def test_owned_table_count() -> None:
-    """Sanity: the models register exactly the 22 app tables."""
-    assert len(OWNED_TABLES) == 22
+    """Sanity: the models register exactly the 23 app tables."""
+    assert len(OWNED_TABLES) == 23
 
 
 def test_no_metadata_diff(migration_db: tuple[Config, str]) -> None:

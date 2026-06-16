@@ -45,7 +45,11 @@
   --border: #e7e0d9;
   --text: #1b1611;           /* warm near-black */
   --text-muted: #5e5247;     /* --n-600 */
-  --on-accent: #ffffff;      /* text/icon on --accent & --brand (light UI) */
+  --on-accent: #ffffff;      /* text/icon on --accent (Ember) fill, light UI */
+  --on-brand: #ffffff;       /* text/icon on --brand (Clay) fill — white in BOTH
+                                themes (5.0:1); Clay is too dark for ink-on-fill */
+  --accent-text: #9a5418;    /* Ember-as-SMALL-TEXT on light surfaces (5.4:1 AA);
+                                --accent-strong (#c5722b) is fill-only (3.4:1 as text) */
 }
 
 /* --- §4 Surface & text roles — DARK --------------------------------------- */
@@ -56,7 +60,9 @@
   --border: #433a31;
   --text: #f3efeb;           /* warm off-white */
   --text-muted: #a99c8f;     /* --n-400 */
-  --on-accent: #1b1611;      /* dark ink on warm fills reads cleanest on dark */
+  --on-accent: #1b1611;      /* dark ink on the lighter Ember fill reads cleanest on dark */
+  /* --on-brand stays white from :root — white-on-Clay is 5.0:1 in both themes. */
+  --accent-text: #e8a866;    /* Ember-as-text on dark surfaces (8.7:1 AA) */
 }
 
 /* ============================================================================
@@ -76,6 +82,7 @@
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
   --color-accent-tint: var(--accent-tint);
+  --color-accent-text: var(--accent-text);
 
   /* Neutral ramp */
   --color-n-50: var(--n-50);
@@ -107,6 +114,7 @@
   --color-text: var(--text);
   --color-text-muted: var(--text-muted);
   --color-on-accent: var(--on-accent);
+  --color-on-brand: var(--on-brand);
 
   /* §6 Modular type scale (font-size + paired line-height) */
   --text-display: 3.5rem;

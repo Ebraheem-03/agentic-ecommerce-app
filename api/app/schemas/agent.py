@@ -175,3 +175,54 @@ class StreamError(CamelModel):
     """
 
     error: ErrorBody
+
+
+# --------------------------------------------------------------------------- #
+# Merchandising draft (US-E5-08, ADR-0034 §3).                                  #
+# --------------------------------------------------------------------------- #
+class ComparableOut(CamelModel):
+    """One real catalog comparable behind a price suggestion — the surfaced BASIS.
+
+    The merchandising agent's price suggestion is grounded in REAL seeded same-category /
+    similar catalog rows (never invented competitor data). Each comparable names the
+    product + the actual lowest active variant price the suggestion is computed from, so
+    the seller sees *why* the number is what it is.
+    """
+
+    product_id: str
+    title: str
+    slug: str
+    price_minor: int = Field(description="Lowest active variant price (minor units).")
+
+
+class PriceSuggestionOut(CamelModel):
+    """A comparables-based price suggestion with its basis (never an opaque number).
+
+    ``suggested_price_minor`` is computed structurally (median of the comparables' prices),
+    NOT by the model. ``basis`` is the human-readable rationale; ``comparables`` are the
+    real catalog rows it was derived from. Empty comparables -> no suggestion (null price).
+    """
+
+    suggested_price_minor: int | None = None
+    currency: str = "USD"
+    basis: str = Field(description="How the suggestion was derived (the surfaced basis).")
+    comparables: list[ComparableOut] = Field(default_factory=list)
+
+
+class MerchDraftOut(CamelModel):
+    """A generated DRAFT listing + comparables price suggestion (US-E5-08).
+
+    Persisted as a DRAFT product (``status='draft'``) — NEVER published to the live
+    catalog (a seller approves before anything goes live; that publish action is a future
+    story). ``draft_product_id`` is the persisted draft's id so a later approval step can
+    resolve it. Generation runs async (off the request critical path); the draft is
+    retrievable once ready.
+    """
+
+    draft_product_id: str
+    status: Literal["draft"] = "draft"
+    title: str
+    description: str
+    category: str = ""
+    attributes: dict[str, str] = Field(default_factory=dict)
+    price_suggestion: PriceSuggestionOut

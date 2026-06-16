@@ -12,15 +12,28 @@ Run from this directory (`e2e/`):
 ```bash
 npm install            # one-time: installs @playwright/test + dotenv
 npx playwright install # one-time: downloads browser binaries
-npm run e2e            # run the full suite
-npm run e2e:smoke      # run only @smoke-tagged specs (no app server needed)
+npm run e2e            # run the full suite (boots the web app via webServer)
+npm run e2e:smoke      # @smoke only — server-free harness/env checks (no app boot)
+npm run e2e:web        # @web browser smoke — self-boots web, desktop + mobile
 npm run e2e:ui         # interactive UI mode
 npm run e2e:report     # open the last HTML report
 ```
 
-> Day 1 (US-QA-D01) ships the harness + a smoke placeholder only. The browser
-> install / heavy deps are **not** run yet — declaring scripts, deps and config
-> is enough. The smoke passes with **no running server**.
+### Lanes
+
+- **`@smoke` (US-QA-D01)** — harness + env-contract checks that pass with **no
+  running server**. `e2e:smoke` sets `E2E_NO_WEBSERVER=1` so Playwright does not
+  boot the web app, preserving the Day-1 "smoke stays green with no server"
+  invariant (ADR-0012).
+- **`@web` (US-QA-D18)** — browser smoke: boots the Next.js app (`next build &&
+  next start`, pinned port `3100`) and asserts **route health**, the **auth
+  screens**, the **app shell**, and an **axe a11y baseline** (zero serious/critical
+  on `/`, `/login`, `/register`). It is **backend-free**: static/SSR render + the
+  signed-out shell, not real auth round-trips. Runs on **two viewport projects**,
+  `desktop-chromium` (Desktop Chrome) and `mobile-chromium` (Pixel 5), so every
+  `@web` test executes twice. Browsers: `npx playwright install --with-deps chromium`.
+- **`J-*` journeys (US-QA-D03)** — still `test.fixme`; they need the integrated
+  backend and flip on later.
 
 ## Env contract
 

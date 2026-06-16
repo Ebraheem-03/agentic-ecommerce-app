@@ -67,14 +67,19 @@ cart, support, and (as the merchandising nudge voice) the seller dashboard. Same
 | Element | `data-testid` | Notes |
 |---|---|---|
 | Page root | `search-page` | "On search results". |
-| Search input | `search-input` | The query box. |
-| Submit search | `search-submit` | Run the query. |
-| Results grid/list | `search-results` | Container of result cards. |
-| A single result card | `search-result-card` | One per listing; select nth. |
-| Result card title | `search-result-card > search-result-title` | Inner anchor. |
-| Result card price | `search-result-card > search-result-price` | Inner anchor. |
-| "No results" / empty state | `search-empty-state` | Zero / ambiguous query (J-BUY-01 edge). |
-| Filters region | `search-filters` | Faceted refine (optional anchor). |
+| Search input | `search-input` | The query box (seeds a conversation turn). |
+| Submit search | `search-submit` | Seeds the first turn. |
+
+> **Retired (Day-20, US-QA-D20, revised ADR-0036):** the conversation-first
+> rework routes keyword queries through the agent — the `search-input`/
+> `search-submit` affordance seeds a turn, and there is no static results GRID.
+> The `GET /api/search` route handler + the grid anchors (`search-results`,
+> `search-result-card`, `search-result-title`, `search-result-price`,
+> `search-empty-state`, `search-filters`) were removed, along with their typed
+> keys in `e2e/tests/_selectors.ts` and the `J-BUY-01` fixme skeleton. The
+> "results" surface is now the inline `agent-recommendation-card` (+
+> `agent-recommendation-reason`); the "empty" surface is the empty conversation
+> (Ember welcome + starters), asserted in `e2e/tests/ui-flows.spec.ts`.
 
 ---
 
@@ -186,6 +191,48 @@ the 7, but their specs select these IDs:
 | Refusal assertion target | `agent-refusal-notice` (reused) | J-ADM-03 |
 
 ---
+
+## Auth screens (`login-*`, `register-*`) — US-QA-D18
+
+Sign-in / create-account screens (the `(auth)` route group, minimal chrome). Forms
+do client-side validation, then POST to the `/api/auth/*` route handlers. Error
+regions are `role="alert"` rendered **on demand** (an empty live region is an
+a11y anti-pattern), so a spec triggers them via submit rather than asserting at rest.
+
+| Element | `data-testid` | Notes |
+|---|---|---|
+| Login page root | `login-page` | "Landed on sign-in". |
+| Login form | `login-form` | `noValidate`; client-validates then POSTs. |
+| Email field | `login-email` | `<label htmlFor>`-associated (a11y A6). |
+| Password field | `login-password` | Associated label; `type=password`. |
+| Submit | `login-submit` | — |
+| Form error region | `login-error` | `role="alert"`, conditional (on submit failure). |
+| Register page root | `register-page` | "Landed on create-account". |
+| Register form | `register-form` | — |
+| Name field | `register-name` | Associated label. |
+| Email field | `register-email` | Associated label. |
+| Password field | `register-password` | Associated label + hint (`register-password-hint`). |
+| Role radio — buyer | `register-role-buyer` | Default selection (`RegisterRequest.role`). |
+| Role radio — seller | `register-role-seller` | — |
+| Submit | `register-submit` | — |
+| Form error region | `register-error` | `role="alert"`, conditional. |
+
+## App-shell controls (`nav-*`) — US-QA-D18
+
+Cross-screen shell controls (like `agent-*`, stable wherever the `(shop)` shell
+renders). The shell degrades to signed-out when `/auth/me` is unreachable.
+
+| Element | `data-testid` | Notes |
+|---|---|---|
+| Account menu trigger | `nav-account-menu` | Shown when signed in. |
+| Sign-in button | `nav-sign-in` | Shown when signed out. |
+| Register / Join button | `nav-register` | Shown when signed out. |
+| Sign-out item | `nav-sign-out` | Inside the account menu. |
+| Mobile nav trigger | `nav-mobile-trigger` | Collapsed nav on mobile viewport. |
+
+> Beyond the home screen, each route exposes its page-root id from the screen
+> sections above (`search-page`, `cart-page`, `checkout-page`, `order-status-page`,
+> `seller-dashboard-page`) — the D18 route-health smoke asserts each renders.
 
 ## Change policy
 

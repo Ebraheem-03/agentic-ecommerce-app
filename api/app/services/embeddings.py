@@ -13,9 +13,24 @@ Instead we expose a tiny pluggable seam:
   length == ``settings.embed_dim`` (NEVER hardcoded). Same text -> same vector, so the
   seed stays idempotent and "embeddings refresh on update" is testable: changed text
   yields a changed vector.
+* ``GeminiEmbedder`` — the ratified real provider (ADR-0032): hosted Gemini
+  ``gemini-embedding-001`` MRL-truncated to ``settings.embed_dim`` (768), L2-normalized.
+  Registered under ``"gemini"``; selected by ``EMBED_PROVIDER=gemini`` at runtime. CI/evals
+  deliberately stay on the stub (no key) — the accepted trade-off.
 * ``get_embedder()`` — resolves the active provider from ``settings.embed_provider``
   (default ``"stub"``). Echo registers a real provider (e.g. ``GeminiEmbedder``) in
   ``_PROVIDERS`` and flips ``EMBED_PROVIDER`` — a ONE-LINE swap. No call site changes.
+
+QUERY vs DOCUMENT (asymmetric retrieval)
+========================================
+Gemini distinguishes ``task_type`` RETRIEVAL_DOCUMENT (the stored side) from
+RETRIEVAL_QUERY (the user's search query) — embedding both with the right type measurably
+improves recall. The ``Embedder`` Protocol's ``embed_text``/``embed_batch`` are the
+DOCUMENT path (used by ``refresh_product_embedding`` / policy chunking). A separate
+``embed_query`` method is the QUERY path (used by the future ``SemanticRetriever``).
+``embed_query`` has a default (delegates to ``embed_text``) so the ``StubEmbedder`` stays a
+no-op default — only ``GeminiEmbedder`` overrides it to switch the task type. This adds the
+query/doc distinction WITHOUT breaking the Protocol or the stub.
 
 THE REFRESH PATH
 ================
@@ -30,6 +45,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import struct
 from collections.abc import Sequence
 from typing import Protocol
@@ -64,6 +80,16 @@ class Embedder(Protocol):
     def embed_text(self, text: str) -> list[float]: ...
 
     def embed_batch(self, texts: Sequence[str]) -> list[list[float]]: ...
+
+    def embed_query(self, text: str) -> list[float]:
+        """Embed a SEARCH QUERY (asymmetric retrieval's query side).
+
+        Default = the document path (``embed_text``), which keeps stub/no-asymmetry
+        providers correct with zero extra code. ``GeminiEmbedder`` overrides this to use
+        the RETRIEVAL_QUERY task type. Used by the future ``SemanticRetriever``; the
+        stored/document path stays ``embed_text``/``embed_batch``.
+        """
+        return self.embed_text(text)
 
 
 class StubEmbedder:
@@ -101,14 +127,97 @@ class StubEmbedder:
     def embed_batch(self, texts: Sequence[str]) -> list[list[float]]:
         return [self.embed_text(t) for t in texts]
 
+    def embed_query(self, text: str) -> list[float]:
+        """No-op default: stub has no query/doc asymmetry, so reuse ``embed_text``.
 
-# Provider registry — the swap point. Echo adds e.g.
-#   from app.services.gemini_embedder import GeminiEmbedder
-#   _PROVIDERS["gemini"] = GeminiEmbedder
-# and sets EMBED_PROVIDER=gemini. The factory is keyed lazily so a real provider's
-# (possibly network-/key-dependent) construction only happens when selected.
+        Keeps the stub deterministic and key-free; only ``GeminiEmbedder`` differentiates
+        the query task type.
+        """
+        return self.embed_text(text)
+
+
+def _l2_normalize(vector: list[float]) -> list[float]:
+    """L2-normalize a vector so cosine == dot and the HNSW ``vector_cosine_ops`` (``<=>``)
+    index is exact. MRL truncation un-normalizes Gemini output, so this runs AFTER any
+    dimensionality truncation. A zero vector is returned unchanged (no divide-by-zero).
+    """
+    norm = math.sqrt(sum(component * component for component in vector))
+    if norm == 0.0:
+        return vector
+    return [component / norm for component in vector]
+
+
+class GeminiEmbedder:
+    """Hosted Gemini embedder — the ratified real provider (ADR-0032).
+
+    Wraps ``langchain_google_genai.GoogleGenerativeAIEmbeddings`` (consistent with the chat
+    wiring in ``app/agent/llm.py``). Ships ``gemini-embedding-001`` MRL-truncated to
+    ``settings.embed_dim`` (768): a Day-15 live smoke showed this model serves on the free
+    tier while ``text-embedding-004`` is retired (404). MRL truncation un-normalizes, so
+    every output is L2-normalized AFTER truncation for cosine/HNSW correctness.
+
+    Task types: documents (the stored side, ``embed_text``/``embed_batch``) use
+    RETRIEVAL_DOCUMENT; queries (``embed_query``) use RETRIEVAL_QUERY. The ``model`` tag
+    written into ``embeddings.model`` is the resolved Gemini model id, so Gemini rows are
+    attributable and bulk-re-embeddable (vs. the ``seed-stub`` rows).
+
+    Construction reads the live key from settings and fails loud if absent — selecting this
+    provider with no ``GEMINI_API_KEY`` is a config error, never a silent stub fallback.
+    """
+
+    _DOC_TASK = "RETRIEVAL_DOCUMENT"
+    _QUERY_TASK = "RETRIEVAL_QUERY"
+
+    def __init__(self) -> None:
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings
+        from pydantic import SecretStr
+
+        if not settings.gemini_api_key:
+            raise RuntimeError(
+                "GEMINI_API_KEY is not set. Add it to the gitignored repo-root .env "
+                "(or keep EMBED_PROVIDER=stub). CI/evals intentionally stay on the stub."
+            )
+        self._model_name = settings.embed_model
+        self._dim = settings.embed_dim
+        self._client = GoogleGenerativeAIEmbeddings(
+            model=self._model_name,
+            google_api_key=SecretStr(settings.gemini_api_key),
+        )
+
+    @property
+    def model(self) -> str:
+        return self._model_name
+
+    def embed_text(self, text: str) -> list[float]:
+        """Embed one DOCUMENT (RETRIEVAL_DOCUMENT), MRL-truncated + L2-normalized."""
+        raw = self._client.embed_query(
+            text, task_type=self._DOC_TASK, output_dimensionality=self._dim
+        )
+        return _l2_normalize(raw)
+
+    def embed_batch(self, texts: Sequence[str]) -> list[list[float]]:
+        """Embed DOCUMENTS in one batched call, each MRL-truncated + L2-normalized."""
+        raws = self._client.embed_documents(
+            list(texts), task_type=self._DOC_TASK, output_dimensionality=self._dim
+        )
+        return [_l2_normalize(raw) for raw in raws]
+
+    def embed_query(self, text: str) -> list[float]:
+        """Embed a SEARCH QUERY (RETRIEVAL_QUERY), MRL-truncated + L2-normalized."""
+        raw = self._client.embed_query(
+            text, task_type=self._QUERY_TASK, output_dimensionality=self._dim
+        )
+        return _l2_normalize(raw)
+
+
+# Provider registry — the swap point. ``GeminiEmbedder`` (ADR-0032) is registered under
+# "gemini"; runtime activation is EMBED_PROVIDER=gemini (one env change, no call sites).
+# The map holds the CLASS (not an instance) so a real provider's network-/key-dependent
+# construction only happens when ``get_embedder()`` selects it — the stub default stays
+# key-free for CI/evals.
 _PROVIDERS: dict[str, type[Embedder]] = {
     "stub": StubEmbedder,
+    "gemini": GeminiEmbedder,
 }
 
 

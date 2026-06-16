@@ -18,6 +18,7 @@ const brand: Swatch[] = [
   { name: "brand-tint", varName: "--brand-tint", hex: "#F6E7DF", ink: "dark" },
   { name: "accent", varName: "--accent", hex: "#E08A3C", ink: "dark" },
   { name: "accent-strong", varName: "--accent-strong", hex: "#C5722B" },
+  { name: "accent-text", varName: "--accent-text", hex: "#9A5418" },
   { name: "accent-tint", varName: "--accent-tint", hex: "#FCEEDD", ink: "dark" },
 ];
 

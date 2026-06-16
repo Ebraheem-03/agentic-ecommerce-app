@@ -26,7 +26,7 @@ from .conftest import open_conn
 # ---- expected object inventory (source of truth: erd.md + the 3 migrations) -----
 
 # 20 from 0002_core_schema + `embeddings` from 0003 + `idempotency_keys` from 0006
-# = 22 app tables (excl. alembic_version).
+# + `semantic_cache` from 0007 = 23 app tables (excl. alembic_version).
 EXPECTED_TABLES: frozenset[str] = frozenset(
     {
         "users",
@@ -51,6 +51,7 @@ EXPECTED_TABLES: frozenset[str] = frozenset(
         "agent_actions",
         "embeddings",
         "idempotency_keys",
+        "semantic_cache",
     }
 )
 
@@ -119,7 +120,7 @@ def test_clean_create(migration_db: tuple[Config, str]) -> None:
             f"table set mismatch; missing={EXPECTED_TABLES - tables} "
             f"unexpected={tables - EXPECTED_TABLES}"
         )
-        assert len(tables) == 22
+        assert len(tables) == 23
 
         # --- 14 native enums ---
         enums = _enum_types(conn)
@@ -150,6 +151,17 @@ def test_clean_create(migration_db: tuple[Config, str]) -> None:
                 "SELECT am.amname FROM pg_class c "
                 "JOIN pg_am am ON am.oid = c.relam "
                 "WHERE c.relname = 'ix_embeddings_embedding_hnsw'",
+            )
+            == "hnsw"
+        )
+
+        # --- HNSW cosine index on semantic_cache.query_embedding (0007) ---
+        assert (
+            _scalar(
+                conn,
+                "SELECT am.amname FROM pg_class c "
+                "JOIN pg_am am ON am.oid = c.relam "
+                "WHERE c.relname = 'ix_semantic_cache_embedding_hnsw'",
             )
             == "hnsw"
         )
@@ -242,5 +254,5 @@ def test_rollback_to_base_then_roundtrip(migration_db: tuple[Config, str]) -> No
         assert _enum_types(conn) == EXPECTED_ENUMS
         assert (
             _scalar(conn, "SELECT version_num FROM alembic_version")
-            == "0006_idempotency_keys"
+            == "0007_semantic_cache"
         )
