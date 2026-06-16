@@ -75,3 +75,6 @@ docs/qa/agent/agent-convo-*.md
 # Only the committed README note stays — the dated + latest report pack is throwaway.
 docs/qa/eval/results/agent-eval-*.json
 docs/qa/eval/results/agent-eval-*.md
+# Shopping-journey agent transcript run artifacts (US-QA-D20 E2E; regenerated each run).
+# Only the committed README.md stays — the dated + latest transcripts are throwaway output.
+docs/qa/agent/shopping-journey-*.md
