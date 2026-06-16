@@ -1,12 +1,21 @@
-import { PlaceholderPage } from "@/components/shell/PlaceholderPage";
+import { Suspense } from "react";
+import type { Metadata } from "next";
+import { OrdersView } from "@/components/orders/OrdersView";
+
+export const metadata: Metadata = {
+  title: "Order status · Hearth",
+};
 
 export default function OrdersPage(): JSX.Element {
   return (
-    <PlaceholderPage
-      testId="order-status-page"
-      eyebrow="Orders"
-      title="Order status & returns"
-      body="Track an order, follow its timeline, and start a return — wired in an upcoming story. The route is in place now."
-    />
+    <section data-testid="order-status-page" className="py-8 sm:py-10">
+      <header className="mb-8">
+        <p className="text-caption font-medium uppercase tracking-wide text-accent-text">Orders</p>
+        <h1 className="mt-1 font-display text-h1 font-semibold text-text">Order status &amp; returns</h1>
+      </header>
+      <Suspense fallback={<p className="py-12 text-body text-text-muted">Loading…</p>}>
+        <OrdersView />
+      </Suspense>
+    </section>
   );
 }

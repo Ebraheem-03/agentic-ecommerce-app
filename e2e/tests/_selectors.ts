@@ -38,6 +38,14 @@ export const TID = {
     page: "search-page",
     input: "search-input",
     submit: "search-submit",
+    // ORPHANED by the conversation-first rework (revised ADR-0036): keyword
+    // queries now route through the agent (the search-input seeds a turn), so
+    // there is no static results GRID. These anchors + the GET /api/search route
+    // were retired (Day-20). They are KEPT here only because the J-BUY-01
+    // `test.fixme` skeleton still imports `resultCard` at module level; removing
+    // them would break that spec's compile. Juno owns retiring them in the E2E
+    // rewrite (the "results" state is now the inline agent-recommendation-card;
+    // the "empty" state is the empty CONVERSATION welcome + starters).
     results: "search-results",
     resultCard: "search-result-card",
     resultTitle: "search-result-title",

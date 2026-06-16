@@ -1,15 +1,16 @@
-import type {
-  AgentRecommendation,
-  ProductDetail,
-  SearchResult,
-} from "@/lib/api-types";
+import type { AgentRecommendation, ProductDetail } from "@/lib/api-types";
 
 /**
- * MOCK catalogue fixture — the single source of truth the mock `/api/search`,
- * `/api/agent/*`, and `/api/product` handlers all read from, so deep-links from
- * a rec card or a search card resolve to a real product page during local dev
- * and the US-QA-D19 E2E. NOT shipped to the live backend; at the W3 gate the
- * route handlers proxy FastAPI and this module is no longer referenced.
+ * MOCK catalogue fixture — the single source of truth the mock `/api/agent/*`,
+ * `/api/cart`, `/api/orders`, `/api/seller/*` handlers and the product detail
+ * resolver read from, so deep-links from a rec card or a cart/order line resolve
+ * to a real product page during local dev and the UI E2E. NOT shipped to the
+ * live backend; at the W3 gate the route handlers proxy FastAPI and this module
+ * is no longer referenced.
+ *
+ * NOTE (Day-20 cleanup): the conversation-first rework (revised ADR-0036) routes
+ * keyword queries through the agent, so the old grid `GET /api/search` handler +
+ * its `mockSearch`/`toSearchResult`/`EMPTY_QUERY` helpers were removed here.
  *
  * Tones map to the hi-fi `.ph-*` placeholder swatches (no real image pipeline
  * yet); `image_alt` is meaningful alt text for the a11y A8 contract.
@@ -172,21 +173,6 @@ export const MOCK_PRODUCTS: MockProduct[] = [
   },
 ];
 
-/** Shape a product into a `SearchResult` row. */
-export function toSearchResult(p: MockProduct): SearchResult {
-  return {
-    id: p.id,
-    slug: p.slug,
-    title: p.title,
-    maker: p.maker,
-    price_cents: p.price_cents,
-    currency: p.currency,
-    stock: p.stock,
-    image_alt: p.images[0]?.alt ?? null,
-    picked: p.picked,
-  };
-}
-
 /** Shape a product into an in-chat `AgentRecommendation` with a "why". */
 export function toRecommendation(
   p: MockProduct,
@@ -205,27 +191,7 @@ export function toRecommendation(
   };
 }
 
-/** Naive keyword match for the mock search; the real backend owns retrieval. */
-export function mockSearch(q: string): MockProduct[] {
-  const terms = q.toLowerCase().split(/[^a-z0-9$]+/).filter(Boolean);
-  if (terms.length === 0) return MOCK_PRODUCTS;
-  const scored = MOCK_PRODUCTS.map((p) => {
-    const hay = [p.title, p.maker, ...p.keywords].join(" ").toLowerCase();
-    const score = terms.reduce((n, t) => n + (hay.includes(t) ? 1 : 0), 0);
-    return { p, score };
-  });
-  const hits = scored.filter((s) => s.score > 0);
-  // No keyword hits → return everything so the grid is still useful (browse).
-  // The dedicated empty-state query is the sentinel below.
-  return (hits.length > 0 ? hits : scored)
-    .sort((a, b) => b.score - a.score || Number(b.p.picked) - Number(a.p.picked))
-    .map((s) => s.p);
-}
-
 /** Resolve a product by id OR slug for the detail page / deep-links. */
 export function findProduct(idOrSlug: string): MockProduct | undefined {
   return MOCK_PRODUCTS.find((p) => p.id === idOrSlug || p.slug === idOrSlug);
 }
-
-/** Sentinel query that forces the empty-state (so Juno can assert it). */
-export const EMPTY_QUERY = "zzzznoresults";
