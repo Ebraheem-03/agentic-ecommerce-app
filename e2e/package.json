@@ -7,6 +7,7 @@
     "e2e": "playwright test",
     "e2e:smoke": "cross-env E2E_NO_WEBSERVER=1 playwright test --grep @smoke",
     "e2e:web": "playwright test --grep @web",
+    "e2e:live": "cross-env E2E_LIVE=1 playwright test --grep @live",
     "e2e:ui": "playwright test --ui",
     "e2e:report": "playwright show-report"
   },
