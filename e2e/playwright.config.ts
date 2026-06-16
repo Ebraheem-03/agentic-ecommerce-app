@@ -31,7 +31,12 @@ export default defineConfig({
   // Fail the build if someone leaves a `test.only` in a committed spec.
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Single worker by design: the `@web` lane drives Iris's mock route handlers,
+  // whose cart/orders/seller stores are PROCESS-GLOBAL in-memory state on the one
+  // self-booted server (ADR-0037). Running the two viewport projects in parallel
+  // would let them clobber each other's shared cart mid-flight (US-QA-D20). The
+  // server-free `@smoke` lane is stateless, so this only constrains `@web`.
+  workers: 1,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL: WEB_BASE_URL,

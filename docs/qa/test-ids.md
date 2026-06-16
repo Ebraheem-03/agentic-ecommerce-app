@@ -67,25 +67,19 @@ cart, support, and (as the merchandising nudge voice) the seller dashboard. Same
 | Element | `data-testid` | Notes |
 |---|---|---|
 | Page root | `search-page` | "On search results". |
-| Search input | `search-input` | The query box. |
-| Submit search | `search-submit` | Run the query. |
-| ~~Results grid/list~~ | ~~`search-results`~~ | **RETIRED (Day-20)** — see note below. |
-| ~~A single result card~~ | ~~`search-result-card`~~ | **RETIRED** — replaced by inline `agent-recommendation-card`. |
-| ~~Result card title~~ | ~~`search-result-title`~~ | **RETIRED.** |
-| ~~Result card price~~ | ~~`search-result-price`~~ | **RETIRED.** |
-| ~~"No results" / empty state~~ | ~~`search-empty-state`~~ | **RETIRED** — "empty" is now the empty conversation (Ember welcome + starters). |
-| ~~Filters region~~ | ~~`search-filters`~~ | **RETIRED.** |
+| Search input | `search-input` | The query box (seeds a conversation turn). |
+| Submit search | `search-submit` | Seeds the first turn. |
 
-> **Retired (Day-20, revised ADR-0036):** the conversation-first rework routes
-> keyword queries through the agent — the `search-input`/`search-submit`
-> affordance seeds a turn, and there is no static results GRID. The
-> `GET /api/search` route handler + the `search-results`/`-result-card`/
-> `-empty-state`/`-result-title`/`-result-price`/`-filters` anchors were removed.
-> The "results" surface is now the inline `agent-recommendation-card` (+
-> `agent-recommendation-reason`); the "empty" surface is the empty conversation.
-> These rows are struck through (not deleted) until Juno retires the matching
-> keys in `e2e/tests/_selectors.ts` + the `J-BUY-01` fixme skeleton during the
-> E2E rewrite (the keys still compile-import there today).
+> **Retired (Day-20, US-QA-D20, revised ADR-0036):** the conversation-first
+> rework routes keyword queries through the agent — the `search-input`/
+> `search-submit` affordance seeds a turn, and there is no static results GRID.
+> The `GET /api/search` route handler + the grid anchors (`search-results`,
+> `search-result-card`, `search-result-title`, `search-result-price`,
+> `search-empty-state`, `search-filters`) were removed, along with their typed
+> keys in `e2e/tests/_selectors.ts` and the `J-BUY-01` fixme skeleton. The
+> "results" surface is now the inline `agent-recommendation-card` (+
+> `agent-recommendation-reason`); the "empty" surface is the empty conversation
+> (Ember welcome + starters), asserted in `e2e/tests/ui-flows.spec.ts`.
 
 ---
 
