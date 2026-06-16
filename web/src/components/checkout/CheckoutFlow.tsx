@@ -45,7 +45,7 @@ const DEFAULT_ADDRESS: AddressIn = {
   line1: "14 Kiln Lane",
   line2: "",
   city: "Bristol",
-  region: "",
+  region: "Bristol",
   postal_code: "BS1 4DJ",
   country: "GB",
 };
@@ -92,8 +92,15 @@ export function CheckoutFlow(): JSX.Element {
   // ---- review → approval gate -------------------------------------------
   const openGate = (): void => {
     setAddressError(null);
-    if (!address.name.trim() || !address.line1.trim() || !address.city.trim()) {
-      setAddressError("Add a name, street, and city so Ember knows where to ship.");
+    if (
+      !address.name.trim() ||
+      !address.line1.trim() ||
+      !address.city.trim() ||
+      !address.region.trim()
+    ) {
+      setAddressError(
+        "Add a name, street, city, and region/state so Ember knows where to ship.",
+      );
       return;
     }
     setPhase("approval");
@@ -187,14 +194,15 @@ export function CheckoutFlow(): JSX.Element {
         >
           <h2 className="font-display text-h3 font-semibold text-text">Ship to</h2>
           <fieldset disabled={phase !== "review"} className="grid gap-4 sm:grid-cols-2">
-            <Field label="Full name" value={address.name} onChange={(v) => setAddress((a) => ({ ...a, name: v }))} className="sm:col-span-2" />
-            <Field testId="checkout-address-line1" label="Street address" value={address.line1} onChange={(v) => setAddress((a) => ({ ...a, line1: v }))} className="sm:col-span-2" />
-            <Field label="City" value={address.city} onChange={(v) => setAddress((a) => ({ ...a, city: v }))} />
+            <Field label="Full name" value={address.name} onChange={(v) => setAddress((a) => ({ ...a, name: v }))} className="sm:col-span-2" required invalid={Boolean(addressError) && !address.name.trim()} describedBy="checkout-address-error" />
+            <Field testId="checkout-address-line1" label="Street address" value={address.line1} onChange={(v) => setAddress((a) => ({ ...a, line1: v }))} className="sm:col-span-2" required invalid={Boolean(addressError) && !address.line1.trim()} describedBy="checkout-address-error" />
+            <Field label="City" value={address.city} onChange={(v) => setAddress((a) => ({ ...a, city: v }))} required invalid={Boolean(addressError) && !address.city.trim()} describedBy="checkout-address-error" />
+            <Field testId="checkout-address-region" label="Region / State" value={address.region} onChange={(v) => setAddress((a) => ({ ...a, region: v }))} required invalid={Boolean(addressError) && !address.region.trim()} describedBy="checkout-address-error" />
             <Field label="Postal code" value={address.postal_code} onChange={(v) => setAddress((a) => ({ ...a, postal_code: v }))} />
             <Field label="Country" value={address.country} onChange={(v) => setAddress((a) => ({ ...a, country: v }))} />
           </fieldset>
           {addressError ? (
-            <p data-testid="checkout-address-error" role="alert" className="text-small text-[#8a2f24]">
+            <p id="checkout-address-error" data-testid="checkout-address-error" role="alert" className="text-small text-[#8a2f24]">
               {addressError}
             </p>
           ) : null}
@@ -348,7 +356,7 @@ function ApprovalGate({
       <p className="mt-2 text-body font-medium text-text">Ember is ready to place your order</p>
       <dl className="mt-3 flex flex-col gap-2 text-small">
         <Row label="Items" value={`${itemCount} item${itemCount === 1 ? "" : "s"}`} />
-        <Row label="Ship to" value={`${address.name}, ${address.city}`} />
+        <Row label="Ship to" value={`${address.name}, ${address.city}, ${address.region}`} />
         <Row label="Payment" value={payLabel} />
         <Row label="Total to charge" value={total} />
       </dl>
@@ -410,20 +418,33 @@ function Field({
   onChange,
   className,
   testId,
+  required,
+  invalid,
+  describedBy,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   className?: string;
   testId?: string;
+  required?: boolean;
+  invalid?: boolean;
+  describedBy?: string;
 }): JSX.Element {
   return (
     <label className={`flex flex-col gap-1.5 ${className ?? ""}`}>
-      <span className="text-caption font-medium uppercase tracking-wide text-text-muted">{label}</span>
+      <span className="text-caption font-medium uppercase tracking-wide text-text-muted">
+        {label}
+        {required ? <span className="text-[#8a2f24]" aria-hidden="true"> *</span> : null}
+      </span>
       <input
         data-testid={testId}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        required={required}
+        aria-required={required ? true : undefined}
+        aria-invalid={invalid ? true : undefined}
+        aria-describedby={invalid ? describedBy : undefined}
         className="h-11 rounded-lg border border-border bg-surface-muted px-3.5 text-body text-text placeholder:text-n-400 transition-colors focus-visible:border-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-strong/40 disabled:opacity-70"
       />
     </label>
