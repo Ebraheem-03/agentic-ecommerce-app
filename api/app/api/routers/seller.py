@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Query, Response, status
 
-from app.api._contract import ERROR_RESPONSES, stub
+from app.api._contract import ERROR_RESPONSES
 from app.api.deps import CurrentUser, SessionDep
 from app.schemas.catalog import ProductDetail
 from app.schemas.envelope import Envelope, ListEnvelope
@@ -17,6 +17,7 @@ from app.schemas.seller import (
     StoreOnboardRequest,
     StoreOut,
 )
+from app.services import nudges as nudges_service
 from app.services import seller as seller_service
 
 router = APIRouter(prefix="/seller", tags=["seller"], responses=ERROR_RESPONSES)
@@ -91,11 +92,13 @@ def fulfil_item(
     summary="Merchandising/pricing nudges (agent-generated)",
 )
 def list_nudges(
+    user: CurrentUser,
+    session: SessionDep,
     cursor: str | None = Query(default=None),
     limit: int = Query(default=10, ge=1, le=50),
 ) -> ListEnvelope[NudgeOut]:
     """Grounded nudges for the seller's catalog. (J-SEL-03)"""
-    stub()
+    return nudges_service.list_nudges(session, user.id, cursor=cursor, limit=limit)
 
 
 @router.post(
@@ -103,6 +106,11 @@ def list_nudges(
     response_model=Envelope[NudgeOut],
     summary="Accept a nudge (audited, reversible)",
 )
-def accept_nudge(nudge_id: str, body: NudgeAcceptRequest) -> Envelope[NudgeOut]:
+def accept_nudge(
+    nudge_id: str,
+    body: NudgeAcceptRequest,
+    user: CurrentUser,
+    session: SessionDep,
+) -> Envelope[NudgeOut]:
     """Apply a nudge; logs an audited agent_action. (J-SEL-04)"""
-    stub()
+    return nudges_service.accept_nudge(session, user.id, nudge_id, body)
