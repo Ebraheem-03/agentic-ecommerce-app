@@ -6,7 +6,7 @@ from datetime import datetime
 
 from pydantic import Field
 
-from app.schemas.enums import ProductStatus, StoreStatus
+from app.schemas.enums import ProductStatus, StockState, StoreStatus
 from app.schemas.envelope import CamelModel
 
 
@@ -84,6 +84,9 @@ class ProductSummary(CamelModel):
     # Cheapest active variant price, for list/card display.
     from_price_minor: int | None = Field(default=None, ge=0)
     currency: str = "USD"
+    # Card-level stock rollup over active variants (drives the in-stock/low/OOS badge
+    # on list, search, and recommendation cards). Per-variant stock is VariantOut.in_stock.
+    stock: StockState = StockState.in_stock
     primary_image: ProductImageOut | None = None
     # DERIVED rollups (recomputed on review write); rating_avg null until first review.
     rating_avg: float | None = Field(default=None, ge=0, le=5)

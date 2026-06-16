@@ -33,6 +33,20 @@ class ProductStatus(StrEnum):
     archived = "archived"
 
 
+class StockState(StrEnum):
+    """Product-level stock rollup for list / search / recommendation cards.
+
+    Derived (not stored): the rollup over a product's active variants — a product
+    is ``in_stock`` if its best-stocked variant is, ``out_of_stock`` only when none
+    are sellable, ``low_stock`` for the thin band in between. Per-variant stock stays
+    the boolean ``VariantOut.in_stock``; this is the card-level signal.
+    """
+
+    in_stock = "in_stock"
+    low_stock = "low_stock"
+    out_of_stock = "out_of_stock"
+
+
 class CartStatus(StrEnum):
     open = "open"
     converted = "converted"

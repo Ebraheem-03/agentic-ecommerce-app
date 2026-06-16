@@ -37,7 +37,7 @@ from app.schemas.catalog import (
     StoreSummary,
     VariantOut,
 )
-from app.schemas.enums import ProductStatus, StoreStatus
+from app.schemas.enums import ProductStatus, StockState, StoreStatus
 from app.schemas.envelope import ErrorCode, ListEnvelope, PageMeta
 
 # Highest selectable page size guard mirrors the contract (limit 1-100).
@@ -124,6 +124,27 @@ def _from_price_minor(variants: list[Variant]) -> int | None:
     return min(active_prices) if active_prices else None
 
 
+# Below this available-units band a product card shows "low stock" rather than a
+# plain in-stock badge. A simple, honest threshold — not yet a per-store setting.
+LOW_STOCK_THRESHOLD = 5
+
+
+def _stock_state(variants: list[Variant]) -> StockState:
+    """Product-level stock rollup over active variants.
+
+    A product is in stock if its *best-stocked* active variant is sellable (so a
+    single OOS colourway doesn't grey out the whole card); ``out_of_stock`` only when
+    no active variant has availability; ``low_stock`` for the thin band at/below
+    ``LOW_STOCK_THRESHOLD``. No active variants (draft/archived) ⇒ ``out_of_stock``.
+    """
+    best = max((_variant_available(v) for v in variants if v.is_active), default=0)
+    if best <= 0:
+        return StockState.out_of_stock
+    if best <= LOW_STOCK_THRESHOLD:
+        return StockState.low_stock
+    return StockState.in_stock
+
+
 def _product_summary(product: Product) -> ProductSummary:
     return ProductSummary(
         id=product.id,
@@ -134,6 +155,7 @@ def _product_summary(product: Product) -> ProductSummary:
         store=_store_summary(product.store),
         from_price_minor=_from_price_minor(list(product.variants)),
         currency=_summary_currency(product),
+        stock=_stock_state(list(product.variants)),
         primary_image=_primary_image(list(product.images)),
         rating_avg=float(product.rating_avg) if product.rating_avg is not None else None,
         rating_count=product.rating_count,
@@ -159,6 +181,7 @@ def _product_detail(product: Product) -> ProductDetail:
         store=_store_summary(product.store),
         from_price_minor=_from_price_minor(list(product.variants)),
         currency=_summary_currency(product),
+        stock=_stock_state(list(product.variants)),
         primary_image=_primary_image(list(product.images)),
         rating_avg=float(product.rating_avg) if product.rating_avg is not None else None,
         rating_count=product.rating_count,
