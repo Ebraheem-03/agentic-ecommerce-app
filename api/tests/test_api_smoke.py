@@ -108,10 +108,11 @@ def test_cors_disallowed_origin_is_not_echoed() -> None:
 
 
 def test_envelope_is_app_wide_on_a_non_auth_group() -> None:
-    """A stub from a *different* group than ``test_error_envelope`` (catalog, not auth)
+    """A stub from a *different* group than ``test_error_envelope`` (agent, not admin)
     still emits the canonical not_implemented envelope — proves it's app-wide, not
-    bolted onto one router. (product list/detail are real now; reviews stay a stub.)"""
-    resp = client.get("/products/anything/reviews")
+    bolted onto one router. (reviews/returns/seller are real now; GET /agent/_sse-events
+    is a reference-only stub reachable without auth/body.)"""
+    resp = client.get("/agent/_sse-events")
     assert resp.status_code == 501
     assert resp.json() == {
         "error": {

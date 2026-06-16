@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Header, status
 
-from app.api._contract import ERROR_RESPONSES, stub
+from app.api._contract import ERROR_RESPONSES
 from app.api.deps import CurrentUser, SessionDep
 from app.schemas.envelope import Envelope, ListEnvelope, PageMeta
 from app.schemas.order import (
@@ -32,6 +32,7 @@ from app.schemas.order import (
 )
 from app.schemas.returns import ReturnCreate, ReturnOut
 from app.services import orders as orders_service
+from app.services import returns as returns_service
 
 router = APIRouter(prefix="/orders", tags=["orders"], responses=ERROR_RESPONSES)
 
@@ -129,15 +130,21 @@ def confirm_payment(
     return Envelope(data=payment)
 
 
-# --- Returns nested under an order (STUB — separate later epic) ---------------- #
+# --- Returns nested under an order --------------------------------------------- #
 @router.post(
     "/{order_id}/returns",
     response_model=Envelope[ReturnOut],
     status_code=status.HTTP_201_CREATED,
     summary="Request a return for an order",
 )
-def request_return(order_id: str, body: ReturnCreate) -> Envelope[ReturnOut]:
-    """Request a return. Outside-window direct requests yield ``return_window_closed``;
-    the agent-assisted path defers to a human (``hitl_pending``). (J-BUY-06)
+def request_return(
+    order_id: str, body: ReturnCreate, user: CurrentUser, session: SessionDep
+) -> Envelope[ReturnOut]:
+    """Request a return. Outside-window DIRECT requests yield ``return_window_closed``;
+    the agent-assisted path (``allow_hitl``) defers to a human (``hitl_pending``). The
+    HTTP path is strict (direct): out-of-window -> 409. (J-BUY-06)
     """
-    stub()
+    out, _status = returns_service.request_return(
+        session, user.id, order_id, body, allow_hitl=False
+    )
+    return Envelope(data=out)

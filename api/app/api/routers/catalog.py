@@ -13,8 +13,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Query, status
 
-from app.api._contract import ERROR_RESPONSES, stub
-from app.api.deps import SessionDep
+from app.api._contract import ERROR_RESPONSES
+from app.api.deps import CurrentUser, SessionDep
 from app.schemas.catalog import (
     ProductDetail,
     ProductSummary,
@@ -24,6 +24,7 @@ from app.schemas.catalog import (
 )
 from app.schemas.envelope import Envelope, ListEnvelope
 from app.services import catalog as catalog_service
+from app.services import reviews as reviews_service
 
 router = APIRouter(tags=["catalog"], responses=ERROR_RESPONSES)
 
@@ -63,11 +64,14 @@ def get_product(id_or_slug: str, session: SessionDep) -> Envelope[ProductDetail]
 )
 def list_reviews(
     product_id: str,
+    session: SessionDep,
     cursor: str | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> ListEnvelope[ReviewOut]:
-    """Reviews for a product (newest first). (contract stub — later story)"""
-    stub()
+    """Reviews for a product (newest first), cursor-paginated. (J-BUY-02)"""
+    return reviews_service.list_reviews(
+        session, product_id, cursor=cursor, limit=limit
+    )
 
 
 @router.post(
@@ -76,9 +80,11 @@ def list_reviews(
     status_code=status.HTTP_201_CREATED,
     summary="Create a review (one per user/product)",
 )
-def create_review(product_id: str, body: ReviewCreate) -> Envelope[ReviewOut]:
-    """Add a review; recomputes the rating rollup. (contract stub — later story)"""
-    stub()
+def create_review(
+    product_id: str, body: ReviewCreate, user: CurrentUser, session: SessionDep
+) -> Envelope[ReviewOut]:
+    """Add a review (one per user/product); recomputes the rating rollup. (J-BUY-02)"""
+    return reviews_service.create_review(session, user.id, product_id, body)
 
 
 @router.get(

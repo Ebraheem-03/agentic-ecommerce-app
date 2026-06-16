@@ -42,6 +42,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy.orm.interfaces import LoaderOption
 
+from app.core.errors import APIError
 from app.db.models import (
     Cart,
     Inventory,
@@ -58,6 +59,7 @@ from app.schemas.enums import (
     OrderStatus,
     PaymentStatus,
 )
+from app.schemas.envelope import ErrorCode
 from app.schemas.order import (
     OrderDetail,
     OrderItemOut,
@@ -489,3 +491,37 @@ def confirm_payment(
         body=out,
     )
     return out, 200
+
+
+# --------------------------------------------------------------------------- #
+# Refund — the single shared payment-refund mutation (returns + agent reuse).  #
+# --------------------------------------------------------------------------- #
+def refund_captured_payment(session: Session, order_id: str) -> PaymentOut:
+    """Mark the captured payment on an order as ``refunded`` (v0 thin shim).
+
+    The ONE place the captured -> refunded transition lives, so the returns-decision
+    path and the agent ``refund`` tool share identical money-touching logic (no
+    duplicated payment mutation). Raises ``conflict`` when there's no captured payment
+    to refund. Caller owns scoping (returns service loads an owner/support-visible
+    return before calling this); this operates purely on the order_id.
+    """
+    if not _is_uuid(order_id):
+        raise not_found("order")
+    order = session.scalars(
+        select(Order).where(Order.id == order_id).options(selectinload(Order.payments))
+    ).first()
+    if order is None:
+        raise not_found("order")
+
+    captured = next(
+        (p for p in order.payments if p.status == PaymentStatus.captured.value), None
+    )
+    if captured is None:
+        raise APIError(
+            status_code=409,
+            code=ErrorCode.conflict,
+            message="There's no captured payment to refund on that order.",
+        )
+    captured.status = PaymentStatus.refunded.value
+    session.flush()
+    return _payment_out(captured)

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Query, Response, status
 
 from app.api._contract import ERROR_RESPONSES, stub
+from app.api.deps import CurrentUser, SessionDep
 from app.schemas.catalog import ProductDetail
 from app.schemas.envelope import Envelope, ListEnvelope
 from app.schemas.order import OrderSummary
@@ -16,6 +17,7 @@ from app.schemas.seller import (
     StoreOnboardRequest,
     StoreOut,
 )
+from app.services import seller as seller_service
 
 router = APIRouter(prefix="/seller", tags=["seller"], responses=ERROR_RESPONSES)
 
@@ -26,9 +28,16 @@ router = APIRouter(prefix="/seller", tags=["seller"], responses=ERROR_RESPONSES)
     status_code=status.HTTP_201_CREATED,
     summary="Create / complete the seller store profile",
 )
-def onboard_store(body: StoreOnboardRequest) -> Envelope[StoreOut]:
-    """Onboard a seller store. Incomplete profile blocks publish. (J-SEL-01)"""
-    stub()
+def onboard_store(
+    body: StoreOnboardRequest,
+    user: CurrentUser,
+    session: SessionDep,
+    response: Response,
+) -> Envelope[StoreOut]:
+    """Onboard a seller store (first = 201; re-onboard updates the profile = 200). (J-SEL-01)"""
+    out, status_code = seller_service.onboard_store(session, user.id, body)
+    response.status_code = status_code
+    return Envelope(data=out)
 
 
 @router.post(
@@ -37,9 +46,11 @@ def onboard_store(body: StoreOnboardRequest) -> Envelope[StoreOut]:
     status_code=status.HTTP_201_CREATED,
     summary="List a product (create SKU/variants)",
 )
-def create_product(body: ProductCreate) -> Envelope[ProductDetail]:
+def create_product(
+    body: ProductCreate, user: CurrentUser, session: SessionDep
+) -> Envelope[ProductDetail]:
     """List a product with >=1 variant. Validation errors are labelled. (J-SEL-02)"""
-    stub()
+    return seller_service.create_product(session, user.id, body)
 
 
 @router.get(
@@ -48,11 +59,13 @@ def create_product(body: ProductCreate) -> Envelope[ProductDetail]:
     summary="Orders containing this seller's items",
 )
 def seller_orders(
+    user: CurrentUser,
+    session: SessionDep,
     cursor: str | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> ListEnvelope[OrderSummary]:
     """Orders the seller must fulfil. (J-SEL-05)"""
-    stub()
+    return seller_service.list_orders(session, user.id, cursor=cursor, limit=limit)
 
 
 @router.patch(
@@ -60,9 +73,16 @@ def seller_orders(
     response_model=Envelope[OrderSummary],
     summary="Fulfil / cancel an order line",
 )
-def fulfil_item(order_item_id: str, body: FulfilRequest) -> Envelope[OrderSummary]:
+def fulfil_item(
+    order_item_id: str,
+    body: FulfilRequest,
+    user: CurrentUser,
+    session: SessionDep,
+) -> Envelope[OrderSummary]:
     """Mark a line fulfilled or cancelled (partial fulfilment allowed). (J-SEL-05)"""
-    stub()
+    return seller_service.fulfil_item(
+        session, user.id, order_item_id, body.fulfil_status
+    )
 
 
 @router.get(
