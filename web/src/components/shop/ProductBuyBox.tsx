@@ -116,7 +116,10 @@ export function ProductBuyBox({ product }: { product: ProductDetail }): JSX.Elem
                     isSelected
                       ? "border-accent-strong bg-accent-tint text-text"
                       : "border-border bg-surface text-text-muted hover:border-n-300 hover:text-text",
-                    vOos && "line-through opacity-60",
+                    // Sold-out: strikethrough + the "· sold out" suffix signal
+                    // unavailability WITHOUT dimming the text below AA contrast
+                    // (opacity-60 dropped --text-muted to 2.91:1, axe wcag143).
+                    vOos && "line-through",
                   )}
                 >
                   {v.option_value}
