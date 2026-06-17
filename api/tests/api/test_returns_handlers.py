@@ -18,7 +18,10 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import Order, Payment
+from app.agent.executor import execute_tool
+from app.agent.tools import ToolName
+from app.core.errors import APIError
+from app.db.models import Order, Payment, User
 from app.schemas.enums import PaymentStatus, ReturnReason
 from app.schemas.envelope import ErrorCode
 from app.schemas.returns import ReturnCreate, ReturnItemRequest
@@ -264,3 +267,149 @@ def test_decide_return_refunded_reuses_payment_refund(
         payment = s.scalar(select(Payment).where(Payment.order_id == order["id"]))
         assert payment is not None
         assert payment.status == PaymentStatus.refunded.value
+
+
+# --------------------------------------------------------------------------- #
+# Authz hardening — support sees ALL; every read/decide route needs auth.      #
+# --------------------------------------------------------------------------- #
+def test_list_returns_support_sees_all(
+    seeded_db: SeededDb, api_client: ContractClient, handles: ResolvedHandles
+) -> None:
+    """support/admin list returns spanning multiple buyers — not scoped to one user."""
+    from tests.fixtures.handles import PERSONAS
+
+    api_client.login(PERSONAS["buyer_primary"])
+    o1 = _place_order(api_client, handles.variant_ids["mug_in_stock"], 1)
+    api_client.post(
+        f"/orders/{o1['id']}/returns",
+        json={
+            "reason_code": "damaged",
+            "items": [{"order_item_id": o1["items"][0]["id"], "qty": 1}],
+        },
+    )
+
+    api_client.login(PERSONAS["buyer_secondary"])
+    o2 = _place_order(api_client, handles.variant_ids["mug_in_stock"], 1)
+    api_client.post(
+        f"/orders/{o2['id']}/returns",
+        json={
+            "reason_code": "damaged",
+            "items": [{"order_item_id": o2["items"][0]["id"], "qty": 1}],
+        },
+    )
+
+    api_client.login(PERSONAS["support"])
+    resp = api_client.get("/returns")
+    assert resp.status_code == 200, resp.text
+    order_ids = {r["order_id"] for r in resp.json()["data"]}
+    # support sees BOTH buyers' returns — no per-user scoping.
+    assert {o1["id"], o2["id"]} <= order_ids
+
+
+def test_list_returns_unauthenticated_401(
+    seeded_db: SeededDb, api_client: ContractClient
+) -> None:
+    assert api_client.get("/returns").status_code == 401
+
+
+def test_get_return_unauthenticated_401(
+    seeded_db: SeededDb, api_client: ContractClient
+) -> None:
+    assert api_client.get(f"/returns/{uuid.uuid4()}").status_code == 401
+
+
+def test_decide_return_unauthenticated_401(
+    seeded_db: SeededDb, api_client: ContractClient
+) -> None:
+    resp = api_client.request(
+        "PATCH", f"/returns/{uuid.uuid4()}", json={"status": "approved"}
+    )
+    assert resp.status_code == 401, resp.text
+
+
+# --------------------------------------------------------------------------- #
+# Refund-cap enforcement on the RETURNS refund amount (the money path).        #
+#                                                                              #
+# FINDING (by design, not a vuln): the support/admin returns-DECIDE path       #
+# (app/services/returns.py::decide_return, the `refunded` branch ~L309-311)    #
+# does NOT consult refund_tier / the caps. ADR-0033 §1 makes the caps the      #
+# AUTONOMOUS AGENT's ceiling (enforced in app/agent/executor.py::_exec_refund, #
+# ~L349); the HITL tier explicitly DEFERS an above-cap refund "for a human on  #
+# the support team to review" — and decide_return IS that human resolution.    #
+# These two tests pin both halves: the agent path refuses above the ceiling    #
+# (no mutation); the human PATCH path is the escape hatch and succeeds.        #
+# --------------------------------------------------------------------------- #
+def _capture_paid_order(
+    client: ContractClient, variant_id: str, qty: int
+) -> dict:
+    """Place an order and capture its payment so a refund has something to act on."""
+    order = _place_order(client, variant_id, qty)
+    intent = client.post(f"/orders/{order['id']}/payment-intent").json()["data"]
+    pay = client.post(
+        f"/orders/{order['id']}/payment-confirm",
+        json={"payment_id": intent["payment_id"], "outcome": "captured"},
+    )
+    assert pay.status_code == 200, pay.text
+    return order
+
+
+def test_returns_refund_amount_above_cap_agent_path_refuses(
+    seeded_db: SeededDb, api_client: ContractClient, handles: ResolvedHandles
+) -> None:
+    """Agent refund tool REFUSES an above-ceiling refund (no payment mutation).
+
+    The returns refund reuses the captured-payment money path; the autonomous agent is
+    capped (ADR-0033). 6 mugs @ $34 = $204 > the $200 HITL ceiling -> RefundTier.refuse.
+    """
+    from tests.fixtures.handles import PERSONAS
+
+    api_client.login(PERSONAS["buyer_primary"])
+    order = _capture_paid_order(api_client, handles.variant_ids["mug_in_stock"], 6)
+
+    with Session(seeded_db.engine) as s:
+        buyer = s.get(User, handles.user_ids[PERSONAS["buyer_primary"].handle])
+        assert buyer is not None
+        with pytest.raises(APIError) as ei:
+            execute_tool(
+                ToolName.refund, {"order_id": order["id"]}, session=s, user=buyer
+            )
+        assert ei.value.status_code == 403
+        assert ei.value.code is ErrorCode.forbidden
+        # No mutation: the captured payment is untouched (cap held).
+        pay = s.scalar(select(Payment).where(Payment.order_id == order["id"]))
+        assert pay is not None
+        assert pay.status == PaymentStatus.captured.value
+
+
+def test_returns_refund_above_cap_support_decide_is_escape_hatch(
+    seeded_db: SeededDb, api_client: ContractClient, handles: ResolvedHandles
+) -> None:
+    """support/admin PATCH /returns/{id} refunds an above-cap amount — the human escape hatch.
+
+    Documents that decide_return intentionally does NOT apply the agent cap: it IS the
+    human resolution the HITL tier defers to. 6 mugs @ $34 = $204 > ceiling, yet a
+    support refund succeeds and flips the payment.
+    """
+    from tests.fixtures.handles import PERSONAS
+
+    api_client.login(PERSONAS["buyer_primary"])
+    order = _capture_paid_order(api_client, handles.variant_ids["mug_in_stock"], 6)
+    ret = api_client.post(
+        f"/orders/{order['id']}/returns",
+        json={
+            "reason_code": "damaged",
+            "items": [{"order_item_id": order["items"][0]["id"], "qty": 1}],
+        },
+    ).json()["data"]
+
+    api_client.login(PERSONAS["support"])
+    resp = api_client.request(
+        "PATCH", f"/returns/{ret['id']}", json={"status": "refunded"}
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["data"]["status"] == "refunded"
+
+    with Session(seeded_db.engine) as s:
+        pay = s.scalar(select(Payment).where(Payment.order_id == order["id"]))
+        assert pay is not None
+        assert pay.status == PaymentStatus.refunded.value

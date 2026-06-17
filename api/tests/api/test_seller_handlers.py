@@ -233,6 +233,17 @@ def test_seller_orders_unauthenticated_401(
     assert resp.status_code == 401, resp.text
 
 
+def test_fulfil_item_unauthenticated_401(
+    seeded_db: SeededDb, api_client: ContractClient
+) -> None:
+    """The state-mutating fulfil route rejects an unauthenticated caller -> 401."""
+    resp = api_client.request(
+        "PATCH", f"/seller/order-items/{uuid.uuid4()}/fulfil",
+        json={"fulfil_status": "fulfilled"},
+    )
+    assert resp.status_code == 401, resp.text
+
+
 # --------------------------------------------------------------------------- #
 # Seller order detail — the fulfil-table source (only this seller's lines).   #
 # --------------------------------------------------------------------------- #
