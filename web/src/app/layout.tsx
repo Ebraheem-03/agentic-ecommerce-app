@@ -1,20 +1,26 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Fraunces, Outfit } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-// §6 — Fraunces (display/headings + wordmark): 400 + 600 only.
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  weight: ["400", "600"],
+// §6 — fonts are SELF-HOSTED (next/font/local) so the production `next build`
+// never reaches out to fonts.gstatic.com (build-time fetch is blocked in the
+// Docker/CI sandbox — see docs/STATUS.md). Variable woff2 files live in ./fonts;
+// the CSS-variable contract (--font-fraunces / --font-outfit, consumed in
+// globals.css) is unchanged.
+
+// Fraunces (display/headings + wordmark): variable, used at 400 + 600.
+const fraunces = localFont({
+  src: "./fonts/fraunces-latin-standard-normal.woff2",
+  weight: "400 600",
   display: "swap",
   variable: "--font-fraunces",
 });
 
-// §6 — Outfit (UI / body): 400 + 500 only.
-const outfit = Outfit({
-  subsets: ["latin"],
-  weight: ["400", "500"],
+// Outfit (UI / body): variable, used at 400 + 500.
+const outfit = localFont({
+  src: "./fonts/outfit-latin-wght-normal.woff2",
+  weight: "400 500",
   display: "swap",
   variable: "--font-outfit",
 });
