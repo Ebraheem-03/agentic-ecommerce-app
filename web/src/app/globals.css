@@ -197,3 +197,52 @@
     }
   }
 }
+
+/* ============================================================================
+   Editorial page-load reveal — a restrained, staggered rise+fade.
+   Each `.reveal` starts shifted down and transparent, then settles. Stagger is
+   driven by an inline `--reveal-delay`. Image tiles get a calm scale/lift on
+   hover via `.img-zoom`. Both have a reduced-motion path: no rise, no zoom, an
+   instant (reduced) appearance so nothing is hidden from users who opt out.
+   ========================================================================== */
+@layer utilities {
+  @keyframes hearth-reveal {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 1.25rem, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .reveal {
+    opacity: 0;
+    animation: hearth-reveal 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    animation-delay: var(--reveal-delay, 0ms);
+  }
+
+  /* Image tile that scales gently when its hover-group is hovered/focused. */
+  .img-zoom {
+    transition: transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+    will-change: transform;
+  }
+  .group:hover .img-zoom,
+  .group:focus-within .img-zoom {
+    transform: scale(1.04);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal {
+      opacity: 1;
+      animation: none;
+    }
+    .img-zoom,
+    .group:hover .img-zoom,
+    .group:focus-within .img-zoom {
+      transition: none;
+      transform: none;
+    }
+  }
+}

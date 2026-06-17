@@ -15,6 +15,7 @@ export function ProductThumb({
   tone,
   alt,
   className,
+  imgClassName,
   overlay,
   testId,
 }: {
@@ -23,6 +24,8 @@ export function ProductThumb({
   tone?: string | null;
   alt?: string | null;
   className?: string;
+  /** Extra classes on the `<img>` itself (e.g. `img-zoom` for hover scale). */
+  imgClassName?: string;
   /** Optional badge text drawn over the swatch (e.g. "★ Picked"). */
   overlay?: string;
   /** Stable test anchor (e.g. `product-image` for the gallery hero). */
@@ -49,7 +52,10 @@ export function ProductThumb({
           alt={alt ?? ""}
           loading="lazy"
           decoding="async"
-          className="absolute inset-0 h-full w-full object-cover"
+          className={cn(
+            "absolute inset-0 h-full w-full object-cover",
+            imgClassName,
+          )}
         />
       ) : null}
       {overlay ? (
