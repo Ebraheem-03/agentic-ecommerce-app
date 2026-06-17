@@ -12,6 +12,17 @@ from __future__ import annotations
 from typing import Any, TypedDict
 
 
+def _img(slug: str) -> str:
+    """Deterministic, always-resolving product image URL.
+
+    picsum.photos returns a real photo keyed by ``seed`` — stable per slug across
+    reseeds and reliably loadable from a browser (no API key, no expiring asset id).
+    Square 800x800 to suit the catalog card + detail grid. This keeps the demo from
+    rendering flat color blocks while staying deterministic for idempotent reseeds.
+    """
+    return f"https://picsum.photos/seed/hearth-{slug}/800/800"
+
+
 class UserSeed(TypedDict):
     email: str
     display_name: str
@@ -100,7 +111,7 @@ STORES: list[StoreSeed] = [
                 "deeper at the base, like a receding tide. Comfortable thumb rest, "
                 "dishwasher-safe, made to take daily.",
                 "attributes": {"material": "stoneware", "capacity_oz": 12, "dishwasher_safe": True},
-                "image_url": "https://images.hearth.test/solveig/tide-mug.jpg",
+                "image_url": _img("tide-pour-over-mug"),
                 "image_alt": "Matte sage stoneware mug with a pooled glaze base",
                 "variants": [
                     {
@@ -144,7 +155,7 @@ STORES: list[StoreSeed] = [
                 "description": "A wide, shallow serving bowl that makes a salad look like "
                 "the main event. Reactive glaze with flecks of iron; food-safe.",
                 "attributes": {"material": "stoneware", "diameter_cm": 28, "food_safe": True},
-                "image_url": "https://images.hearth.test/solveig/ebb-bowl.jpg",
+                "image_url": _img("ebb-serving-bowl"),
                 "image_alt": "Wide shallow stoneware serving bowl, speckled glaze",
                 "variants": [
                     {
@@ -166,6 +177,57 @@ STORES: list[StoreSeed] = [
                     },
                 ],
             },
+            {
+                "slug": "drift-dinner-plates",
+                "title": "Drift Dinner Plates (Set of 2)",
+                "category": "Kitchen & Dining",
+                "description": "A pair of wide-rimmed stoneware dinner plates with a soft "
+                "speckle and a glaze that breaks lighter at the edge. Stackable, oven- and "
+                "dishwasher-safe.",
+                "attributes": {"material": "stoneware", "set_size": 2, "diameter_cm": 27},
+                "image_url": _img("drift-dinner-plates"),
+                "image_alt": "Two speckled stoneware dinner plates stacked",
+                "variants": [
+                    {
+                        "sku": "SOL-PLATE-MIST",
+                        "options": {"color": "Sea Mist"},
+                        "price_minor": 7600,
+                        "qty_on_hand": 14,
+                        "qty_reserved": 1,
+                        "restock_eta_days": None,
+                    },
+                ],
+                "reviews": [
+                    {
+                        "author_email": "deepa@buyers.hearth.test",
+                        "rating": 5,
+                        "title": "Dinner feels special",
+                        "body": "The weight and the glaze make a weeknight meal look "
+                        "intentional.",
+                    },
+                ],
+            },
+            {
+                "slug": "kelp-bud-vase",
+                "title": "Kelp Bud Vase",
+                "category": "Home",
+                "description": "A slender hand-thrown bud vase in a deep reactive green, "
+                "made for a single stem or a few sprigs of foraged greenery.",
+                "attributes": {"material": "stoneware", "height_cm": 16, "watertight": True},
+                "image_url": _img("kelp-bud-vase"),
+                "image_alt": "Slender deep-green stoneware bud vase",
+                "variants": [
+                    {
+                        "sku": "SOL-VASE-KELP",
+                        "options": {"color": "Kelp Green"},
+                        "price_minor": 4400,
+                        "qty_on_hand": 0,  # out of stock
+                        "qty_reserved": 0,
+                        "restock_eta_days": 18,
+                    },
+                ],
+                "reviews": [],
+            },
         ],
     },
     {
@@ -183,7 +245,7 @@ STORES: list[StoreSeed] = [
                 "description": "A slim four-pocket card wallet in vegetable-tanned leather "
                 "that darkens beautifully with use. Holds 8–10 cards and folded bills.",
                 "attributes": {"material": "veg-tan leather", "card_capacity": 10},
-                "image_url": "https://images.hearth.test/herrera/card-wallet.jpg",
+                "image_url": _img("carryall-card-wallet"),
                 "image_alt": "Slim tan leather card wallet, hand-stitched edges",
                 "variants": [
                     {
@@ -226,7 +288,7 @@ STORES: list[StoreSeed] = [
                 "description": "A 38mm full-grain belt with a solid brass buckle. Cut and "
                 "punched to order, so it actually fits.",
                 "attributes": {"material": "full-grain leather", "width_mm": 38, "buckle": "brass"},
-                "image_url": "https://images.hearth.test/herrera/field-belt.jpg",
+                "image_url": _img("field-belt"),
                 "image_alt": "Brown full-grain leather belt with brass buckle",
                 "variants": [
                     {
@@ -243,6 +305,65 @@ STORES: list[StoreSeed] = [
                         "price_minor": 7400,
                         "qty_on_hand": 4,
                         "qty_reserved": 1,
+                        "restock_eta_days": None,
+                    },
+                ],
+                "reviews": [],
+            },
+            {
+                "slug": "dispatch-leather-tote",
+                "title": "Dispatch Leather Tote",
+                "category": "Bags",
+                "description": "A roomy full-grain tote with riveted handles and a waxed "
+                "linen-stitched base. Carries a laptop, a notebook, and the rest of your "
+                "day without complaint.",
+                "attributes": {"material": "full-grain leather", "fits_laptop_in": 15},
+                "image_url": _img("dispatch-leather-tote"),
+                "image_alt": "Tan full-grain leather tote with riveted handles",
+                "variants": [
+                    {
+                        "sku": "HER-TOTE-CHE",
+                        "options": {"color": "Chestnut"},
+                        "price_minor": 18900,
+                        "qty_on_hand": 5,
+                        "qty_reserved": 0,
+                        "restock_eta_days": None,
+                    },
+                    {
+                        "sku": "HER-TOTE-BLK",
+                        "options": {"color": "Black"},
+                        "price_minor": 18900,
+                        "qty_on_hand": 2,  # low stock
+                        "qty_reserved": 0,
+                        "restock_eta_days": 12,
+                    },
+                ],
+                "reviews": [
+                    {
+                        "author_email": "ada@buyers.hearth.test",
+                        "rating": 5,
+                        "title": "My everyday bag",
+                        "body": "Sturdy, holds its shape, and the leather is already "
+                        "softening nicely.",
+                    },
+                ],
+            },
+            {
+                "slug": "keystone-keychain",
+                "title": "Keystone Leather Keychain",
+                "category": "Accessories",
+                "description": "A small hand-stitched leather fob with a solid brass ring. "
+                "The kind of little upgrade you notice every time you reach for your keys.",
+                "attributes": {"material": "veg-tan leather", "hardware": "brass"},
+                "image_url": _img("keystone-keychain"),
+                "image_alt": "Small tan leather keychain with a brass ring",
+                "variants": [
+                    {
+                        "sku": "HER-KEY-TAN",
+                        "options": {"color": "Natural Tan"},
+                        "price_minor": 1800,
+                        "qty_on_hand": 33,
+                        "qty_reserved": 2,
                         "restock_eta_days": None,
                     },
                 ],
@@ -265,7 +386,7 @@ STORES: list[StoreSeed] = [
                 "description": "Stonewashed linen napkins with a hand-knotted fringe. They "
                 "get softer every wash and shrug off a spilled glass of wine.",
                 "attributes": {"material": "linen", "set_size": 4, "machine_washable": True},
-                "image_url": "https://images.hearth.test/okonkwo/linen-napkins.jpg",
+                "image_url": _img("morning-linen-napkins"),
                 "image_alt": "Folded set of four oat-colored linen napkins with fringe",
                 "variants": [
                     {
@@ -302,7 +423,7 @@ STORES: list[StoreSeed] = [
                 "description": "A generously sized handwoven cotton throw with a subtle "
                 "herringbone weave. Light enough for summer, warm enough for a cool evening.",
                 "attributes": {"material": "cotton", "dimensions_cm": "130x180"},
-                "image_url": "https://images.hearth.test/okonkwo/harbor-throw.jpg",
+                "image_url": _img("harbor-throw"),
                 "image_alt": "Folded blue-and-cream herringbone cotton throw",
                 "variants": [
                     {
@@ -330,6 +451,65 @@ STORES: list[StoreSeed] = [
                     },
                 ],
             },
+            {
+                "slug": "dune-wool-blanket",
+                "title": "Dune Wool Blanket",
+                "category": "Home",
+                "description": "A substantial handwoven wool blanket with a wide natural "
+                "border. Warm without weight, the one you steal from the foot of the bed on "
+                "a cold night.",
+                "attributes": {"material": "wool", "dimensions_cm": "150x200"},
+                "image_url": _img("dune-wool-blanket"),
+                "image_alt": "Folded cream wool blanket with a natural border",
+                "variants": [
+                    {
+                        "sku": "OKO-BLANKET-DUNE",
+                        "options": {"color": "Dune"},
+                        "price_minor": 14500,
+                        "qty_on_hand": 6,
+                        "qty_reserved": 1,
+                        "restock_eta_days": None,
+                    },
+                    {
+                        "sku": "OKO-BLANKET-SLATE",
+                        "options": {"color": "Slate"},
+                        "price_minor": 14500,
+                        "qty_on_hand": 3,  # low stock
+                        "qty_reserved": 0,
+                        "restock_eta_days": 9,
+                    },
+                ],
+                "reviews": [
+                    {
+                        "author_email": "evan@buyers.hearth.test",
+                        "rating": 5,
+                        "title": "Worth every penny",
+                        "body": "Heirloom-warm and the weave is flawless. Lives on our bed "
+                        "all winter.",
+                    },
+                ],
+            },
+            {
+                "slug": "field-tea-towels",
+                "title": "Field Tea Towels (Set of 2)",
+                "category": "Kitchen & Dining",
+                "description": "Absorbent waffle-weave linen tea towels with a woven stripe. "
+                "They actually dry dishes instead of pushing the water around.",
+                "attributes": {"material": "linen", "set_size": 2, "weave": "waffle"},
+                "image_url": _img("field-tea-towels"),
+                "image_alt": "Two striped waffle-weave linen tea towels",
+                "variants": [
+                    {
+                        "sku": "OKO-TOWEL-SAGE",
+                        "options": {"color": "Sage Stripe"},
+                        "price_minor": 3200,
+                        "qty_on_hand": 26,
+                        "qty_reserved": 0,
+                        "restock_eta_days": None,
+                    },
+                ],
+                "reviews": [],
+            },
         ],
     },
     {
@@ -348,7 +528,7 @@ STORES: list[StoreSeed] = [
                 "self-heals small cuts. Juice groove on one side, flat prep surface on the "
                 "other.",
                 "attributes": {"wood": "walnut", "dimensions_cm": "40x28x4", "reversible": True},
-                "image_url": "https://images.hearth.test/watanabe/cutting-board.jpg",
+                "image_url": _img("grain-cutting-board"),
                 "image_alt": "Walnut end-grain cutting board with juice groove",
                 "variants": [
                     {
@@ -376,7 +556,7 @@ STORES: list[StoreSeed] = [
                 "description": "A matched pair of cherry serving spoons, hand-carved with a "
                 "comfortable, slightly flattened handle. Won't scratch your good pans.",
                 "attributes": {"wood": "cherry", "set_size": 2},
-                "image_url": "https://images.hearth.test/watanabe/serving-spoons.jpg",
+                "image_url": _img("nara-serving-spoons"),
                 "image_alt": "Pair of hand-carved cherry serving spoons",
                 "variants": [
                     {
@@ -386,6 +566,56 @@ STORES: list[StoreSeed] = [
                         "qty_on_hand": 1,  # very low stock
                         "qty_reserved": 0,
                         "restock_eta_days": 14,
+                    },
+                ],
+                "reviews": [],
+            },
+            {
+                "slug": "stack-coffee-scoop",
+                "title": "Stack Coffee Scoop",
+                "category": "Kitchen & Dining",
+                "description": "A hand-carved walnut coffee scoop that holds a level two "
+                "tablespoons. Smooth enough to live in the bean jar, pretty enough to leave "
+                "on the counter.",
+                "attributes": {"wood": "walnut", "capacity_tbsp": 2},
+                "image_url": _img("stack-coffee-scoop"),
+                "image_alt": "Hand-carved walnut coffee scoop in coffee beans",
+                "variants": [
+                    {
+                        "sku": "WAT-SCOOP-WAL",
+                        "options": {"wood": "Walnut"},
+                        "price_minor": 2400,
+                        "qty_on_hand": 19,
+                        "qty_reserved": 0,
+                        "restock_eta_days": None,
+                    },
+                ],
+                "reviews": [
+                    {
+                        "author_email": "ben@buyers.hearth.test",
+                        "rating": 4,
+                        "title": "Small and lovely",
+                        "body": "Does exactly one thing and does it beautifully. Nice gift.",
+                    },
+                ],
+            },
+            {
+                "slug": "ridge-walnut-tray",
+                "title": "Ridge Walnut Catch-All Tray",
+                "category": "Home",
+                "description": "A low hand-finished walnut tray for keys, coins, and the "
+                "small things that pile up by the door. Felt-footed so it won't scratch.",
+                "attributes": {"wood": "walnut", "dimensions_cm": "22x14x2"},
+                "image_url": _img("ridge-walnut-tray"),
+                "image_alt": "Low walnut catch-all tray holding keys and coins",
+                "variants": [
+                    {
+                        "sku": "WAT-TRAY-WAL",
+                        "options": {"wood": "Walnut"},
+                        "price_minor": 4900,
+                        "qty_on_hand": 8,
+                        "qty_reserved": 1,
+                        "restock_eta_days": None,
                     },
                 ],
                 "reviews": [],
@@ -407,7 +637,7 @@ STORES: list[StoreSeed] = [
                 "description": "A 9oz soy candle in cedar, amber, and a whisper of smoke — "
                 "like a fire two rooms away. Burns clean for about 50 hours.",
                 "attributes": {"wax": "soy", "burn_hours": 50, "scent": "cedar & amber"},
-                "image_url": "https://images.hearth.test/fenn/hearthlight-candle.jpg",
+                "image_url": _img("hearthlight-candle"),
                 "image_alt": "Amber glass soy candle with a kraft label",
                 "variants": [
                     {
@@ -450,7 +680,7 @@ STORES: list[StoreSeed] = [
                 "description": "A non-greasy beeswax and shea balm for hands that have done "
                 "real work. Light calendula scent, absorbs fast.",
                 "attributes": {"base": "beeswax & shea", "size_ml": 60, "synthetic_free": True},
-                "image_url": "https://images.hearth.test/fenn/hand-balm.jpg",
+                "image_url": _img("salve-hand-balm"),
                 "image_alt": "Small tin of pale yellow hand balm, open",
                 "variants": [
                     {
