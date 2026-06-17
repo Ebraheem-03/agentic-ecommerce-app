@@ -206,7 +206,10 @@ function FulfilRow({ item }: { item: SellerFulfilItem }): JSX.Element {
     setState({ ...state, fulfil_status: status }); // optimistic
     try {
       const updated = await fulfilOrderItem(state.id, { fulfil_status: status });
-      setState(updated);
+      // The live PATCH returns only the OrderSummary, so the proxy echoes a line
+      // with blanked snapshots (title/qty/price). Keep our own snapshot fields and
+      // take just the server-confirmed fulfil_status off the echo.
+      setState((cur) => ({ ...cur, fulfil_status: updated.fulfil_status }));
     } catch (e: unknown) {
       setState(prev);
       setError(e instanceof ShopError ? e.body.message : "Could not update fulfilment.");

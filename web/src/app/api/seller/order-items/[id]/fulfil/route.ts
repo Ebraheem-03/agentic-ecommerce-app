@@ -14,16 +14,13 @@ import { readJson, requireToken, toErrorResponse } from "@/lib/proxy";
  * not a valid target → 422). Errors (403/404/422) flow through the canonical
  * envelope so the UI can branch on the `code`.
  *
- * KNOWN BACKEND GAP (flagged for Atlas/Orion): the backend returns the whole
- * `OrderSummary` (NO line snapshots), and the seller cannot read the buyer's
- * order detail (`GET /orders/{id}` is buyer-owner-scoped → 404). So we cannot
- * return the FULL updated line. We echo a `SellerFulfilItem` carrying the line
- * `id` + the requested `fulfil_status` (the only field that changed) so the
- * optimistic `FulfilRow` reconcile stays correct on the fields it controls; the
- * snapshot fields are filled from the request context where known and otherwise
- * left blank. The dashboard's fulfil table has no live row source today anyway
- * (see `@/lib/adapters/seller`), so this path is effectively unreachable from
- * the UI until the backend exposes seller-scoped order LINES.
+ * The backend's fulfil PATCH returns the whole `OrderSummary` (NO line
+ * snapshots), so we cannot return the FULL updated line. We echo a
+ * `SellerFulfilItem` carrying the line `id` + the requested `fulfil_status` (the
+ * only field that changed); the snapshot fields are left blank. `FulfilRow`
+ * reconciles by taking ONLY `fulfil_status` off this echo and keeping its own
+ * snapshot, so the blanks never reach the UI. The fulfil table's row source is
+ * now live via `GET /seller/orders/{id}` (see `@/lib/adapters/seller`).
  */
 export const dynamic = "force-dynamic";
 
