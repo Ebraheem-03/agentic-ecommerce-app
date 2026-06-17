@@ -83,11 +83,17 @@ export function SellerDashboardView(): JSX.Element {
       <section aria-labelledby="fulfil-heading" className="flex flex-col gap-4">
         <h3 id="fulfil-heading" className="font-display text-h3 font-semibold text-text">Orders to fulfil</h3>
         <div data-testid="seller-dashboard-orders" className="overflow-hidden rounded-2xl border border-border bg-surface">
-          <ul className="divide-y divide-border">
-            {data.order_items.map((item) => (
-              <FulfilRow key={item.id} item={item} />
-            ))}
-          </ul>
+          {data.order_items.length > 0 ? (
+            <ul className="divide-y divide-border">
+              {data.order_items.map((item) => (
+                <FulfilRow key={item.id} item={item} />
+              ))}
+            </ul>
+          ) : (
+            <p className="px-5 py-8 text-center text-small text-text-muted">
+              No order lines to fulfil right now.
+            </p>
+          )}
         </div>
       </section>
 
@@ -105,16 +111,24 @@ export function SellerDashboardView(): JSX.Element {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {data.listings.map((l) => (
-                <tr key={l.product_id}>
-                  <th scope="row" className="px-5 py-3 font-medium text-text">
-                    <Link href={`/product/${l.slug}`} className="hover:text-accent-strong">{l.title}</Link>
-                  </th>
-                  <td className="px-5 py-3 text-text">{formatPrice(l.price_minor, l.currency)}</td>
-                  <td className="px-5 py-3 text-text">{l.qty_on_hand}</td>
-                  <td className="px-5 py-3"><StockBadge stock={l.stock} /></td>
+              {data.listings.length > 0 ? (
+                data.listings.map((l) => (
+                  <tr key={l.product_id}>
+                    <th scope="row" className="px-5 py-3 font-medium text-text">
+                      <Link href={`/product/${l.slug}`} className="hover:text-accent-strong">{l.title}</Link>
+                    </th>
+                    <td className="px-5 py-3 text-text">{formatPrice(l.price_minor, l.currency)}</td>
+                    <td className="px-5 py-3 text-text">{l.qty_on_hand}</td>
+                    <td className="px-5 py-3"><StockBadge stock={l.stock} /></td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="px-5 py-8 text-center text-small text-text-muted">
+                    No listings to show yet.
+                  </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
