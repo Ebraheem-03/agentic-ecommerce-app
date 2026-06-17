@@ -14,6 +14,7 @@ from app.schemas.seller import (
     NudgeAcceptRequest,
     NudgeOut,
     ProductCreate,
+    SellerOrderDetail,
     StoreOnboardRequest,
     StoreOut,
 )
@@ -67,6 +68,20 @@ def seller_orders(
 ) -> ListEnvelope[OrderSummary]:
     """Orders the seller must fulfil. (J-SEL-05)"""
     return seller_service.list_orders(session, user.id, cursor=cursor, limit=limit)
+
+
+@router.get(
+    "/orders/{order_id}",
+    response_model=Envelope[SellerOrderDetail],
+    summary="One order with only this seller's lines (fulfil table source)",
+)
+def seller_order_detail(
+    order_id: str,
+    user: CurrentUser,
+    session: SessionDep,
+) -> Envelope[SellerOrderDetail]:
+    """The order's lines that belong to this seller — each id is fulfil-able. (J-SEL-05)"""
+    return seller_service.get_order_detail(session, user.id, order_id)
 
 
 @router.patch(

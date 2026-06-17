@@ -11,8 +11,9 @@ from datetime import datetime
 
 from pydantic import Field
 
-from app.schemas.enums import FulfilStatus, StoreStatus
+from app.schemas.enums import FulfilStatus, OrderStatus, StoreStatus
 from app.schemas.envelope import CamelModel
+from app.schemas.order import OrderItemOut
 
 
 class StoreOnboardRequest(CamelModel):
@@ -81,3 +82,26 @@ class FulfilRequest(CamelModel):
     """PATCH /seller/order-items/{id}/fulfil — mark a line fulfilled/cancelled."""
 
     fulfil_status: FulfilStatus
+
+
+class SellerOrderDetail(CamelModel):
+    """GET /seller/orders/{order_id} — order with ONLY this seller's lines.
+
+    Backs the seller-dashboard fulfil table. ``items`` contains exactly the line
+    items belonging to the caller's OWN store (foreign-store lines are stripped —
+    a seller never sees another store's lines, qty, or pricing). Each ``items[*].id``
+    is the ``order_item_id`` that ``PATCH /seller/order-items/{id}/fulfil`` accepts.
+
+    ``item_count`` is summed over this seller's lines only (not the whole order), so
+    the fulfil table never implies counts the seller can't act on.
+    """
+
+    id: str
+    order_number: str
+    status: OrderStatus
+    currency: str = "USD"
+    item_count: int = Field(ge=0, description="Sum of qty over THIS seller's lines only.")
+    placed_at: datetime
+    items: list[OrderItemOut] = Field(
+        description="This seller's order lines only — each id is a fulfil-able order_item_id.",
+    )

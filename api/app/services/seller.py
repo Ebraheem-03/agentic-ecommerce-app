@@ -35,10 +35,15 @@ from app.db.models import (
     Variant,
 )
 from app.schemas.catalog import ProductDetail
-from app.schemas.enums import FulfilStatus, ProductStatus, StoreStatus
+from app.schemas.enums import FulfilStatus, OrderStatus, ProductStatus, StoreStatus
 from app.schemas.envelope import Envelope, ErrorCode, ListEnvelope, PageMeta
 from app.schemas.order import OrderSummary
-from app.schemas.seller import ProductCreate, StoreOnboardRequest, StoreOut
+from app.schemas.seller import (
+    ProductCreate,
+    SellerOrderDetail,
+    StoreOnboardRequest,
+    StoreOut,
+)
 from app.services import catalog as catalog_service
 from app.services import orders as orders_service
 
@@ -245,6 +250,57 @@ def list_orders(
     return ListEnvelope(
         data=[orders_service._order_summary(o) for o in page],  # noqa: SLF001
         meta=PageMeta(next_cursor=next_cursor, limit=limit, total=None),
+    )
+
+
+def get_order_detail(
+    session: Session, user_id: str, order_id: str
+) -> Envelope[SellerOrderDetail]:
+    """One order with ONLY this seller's lines — backs the fulfil table.
+
+    Scoped to the caller's store: the returned ``items`` are exactly the lines whose
+    variant->product->store is this store, and each ``items[*].id`` is the
+    ``order_item_id`` that ``fulfil_item`` accepts. An order that contains none of this
+    seller's lines (or no such order) -> 404 (no-leak) — a seller can't probe another
+    store's orders. ``item_count`` is summed over this seller's lines only.
+    """
+    store = _load_own_store(session, user_id)
+    if not _is_uuid(order_id):
+        raise _not_found("order")
+
+    order = session.scalars(
+        select(Order)
+        .where(Order.id == order_id, _seller_item_exists_clause(store.id))
+        .options(selectinload(Order.items))
+    ).first()
+    if order is None:
+        # No such order, or it holds none of this seller's lines — same no-leak 404.
+        raise _not_found("order")
+
+    own_variant_ids = set(
+        session.scalars(
+            select(Variant.id)
+            .join(Product, Variant.product_id == Product.id)
+            .where(Product.store_id == store.id)
+        )
+    )
+    own_items = sorted(
+        (it for it in order.items if it.variant_id in own_variant_ids),
+        key=lambda it: it.id,
+    )
+    return Envelope(
+        data=SellerOrderDetail(
+            id=order.id,
+            order_number=order.order_number,
+            status=OrderStatus(order.status),
+            currency=order.currency,
+            item_count=sum(it.qty for it in own_items),
+            placed_at=order.placed_at,
+            items=[
+                orders_service._order_item_out(it)  # noqa: SLF001 — shared projection
+                for it in own_items
+            ],
+        )
     )
 
 

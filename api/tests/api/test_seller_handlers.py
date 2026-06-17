@@ -231,3 +231,75 @@ def test_seller_orders_unauthenticated_401(
 ) -> None:
     resp = api_client.get("/seller/orders")
     assert resp.status_code == 401, resp.text
+
+
+# --------------------------------------------------------------------------- #
+# Seller order detail — the fulfil-table source (only this seller's lines).   #
+# --------------------------------------------------------------------------- #
+def test_seller_order_detail_only_own_lines(
+    seeded_db: SeededDb, api_client: ContractClient, handles: ResolvedHandles
+) -> None:
+    """A multi-seller order -> the seller sees ONLY their own lines (no leak of others)."""
+    api_client.login(PERSONAS["buyer_primary"])
+    # One cart spanning two stores: ceramics mug + leather wallet.
+    add1 = api_client.post(
+        "/cart/items",
+        json={"variant_id": handles.variant_ids["mug_in_stock"], "qty": 2},
+    )
+    assert add1.status_code == 201, add1.text
+    add2 = api_client.post(
+        "/cart/items",
+        json={"variant_id": handles.variant_ids["wallet_in_stock"], "qty": 1},
+    )
+    assert add2.status_code == 201, add2.text
+    placed = api_client.post("/orders", json={"ship_address": _SHIP})
+    assert placed.status_code == 201, placed.text
+    order = placed.json()["data"]
+    assert len(order["items"]) == 2  # the buyer sees both stores' lines
+
+    api_client.login(PERSONAS["seller_ceramics"])
+    resp = api_client.get(f"/seller/orders/{order['id']}")
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+    assert data["id"] == order["id"]
+    # Only the ceramics (mug) line — the leather wallet line is stripped.
+    assert len(data["items"]) == 1
+    assert "wallet" not in data["items"][0]["title_snapshot"].lower()
+    assert data["item_count"] == 2  # qty of the seller's own line, not the whole order
+
+    # The surfaced id is exactly what PATCH .../fulfil accepts.
+    own_item_id = data["items"][0]["id"]
+    fulfil = api_client.request(
+        "PATCH", f"/seller/order-items/{own_item_id}/fulfil",
+        json={"fulfil_status": "fulfilled"},
+    )
+    assert fulfil.status_code == 200, fulfil.text
+
+
+def test_seller_order_detail_foreign_only_404(
+    seeded_db: SeededDb, api_client: ContractClient, handles: ResolvedHandles
+) -> None:
+    """An order with none of the seller's lines -> no-leak 404 (can't probe others)."""
+    api_client.login(PERSONAS["buyer_primary"])
+    order = _place_buyer_order(api_client, handles.variant_ids["mug_in_stock"], 1)
+
+    # seller_leather owns no line in this ceramics-only order.
+    api_client.login(PERSONAS["seller_leather"])
+    resp = api_client.get(f"/seller/orders/{order['id']}")
+    assert resp.status_code == 404, resp.text
+    assert resp.json()["error"]["code"] == ErrorCode.not_found.value
+
+
+@pytest.mark.parametrize("persona_client", ["seller_ceramics"], indirect=True)
+def test_seller_order_detail_missing_404(
+    seeded_db: SeededDb, persona_client: ContractClient
+) -> None:
+    resp = persona_client.get(f"/seller/orders/{uuid.uuid4()}")
+    assert resp.status_code == 404, resp.text
+
+
+def test_seller_order_detail_unauthenticated_401(
+    seeded_db: SeededDb, api_client: ContractClient
+) -> None:
+    resp = api_client.get(f"/seller/orders/{uuid.uuid4()}")
+    assert resp.status_code == 401, resp.text
