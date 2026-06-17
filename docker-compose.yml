@@ -31,6 +31,13 @@ services:
     build:
       context: ./api
       dockerfile: Dockerfile
+    # Load the gitignored repo-root .env (LLM keys: GROQ_API_KEY, GEMINI_API_KEY)
+    # so the product agent (Ember) can reach Groq/Gemini. No secret literal lives
+    # in this file. IMPORTANT: keys in `environment:` below override anything in
+    # env_file, so DATABASE_URL stays pinned to the compose `db` service even if
+    # .env also defines a (local-host) DATABASE_URL. Verify with `docker compose config`.
+    env_file:
+      - .env
     environment:
       # Built from the POSTGRES_* values above so no literal credentials live in
       # the repo. To target an external DB, override the POSTGRES_* vars in .env.
