@@ -39,6 +39,7 @@ export function RecommendationCard({
       className="group flex gap-3 rounded-[14px] border border-border bg-surface p-3 no-underline transition-colors hover:border-accent-strong/60 hover:bg-accent-tint/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-strong"
     >
       <ProductThumb
+        src={rec.image_url}
         tone={toneFor(rec.title)}
         alt={rec.image_alt}
         className="h-[64px] w-[64px] flex-none rounded-[10px]"

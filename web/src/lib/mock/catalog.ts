@@ -42,10 +42,10 @@ export const MOCK_PRODUCTS: MockProduct[] = [
     picked: true,
     keywords: ["bowl", "serving", "ceramic", "kitchen", "cook", "gift", "table", "dinner"],
     images: [
-      { id: "img_bowl_1", alt: "Wood-fired stoneware serving bowl, deep moss glaze, photographed from above", tone: "from-[#7f8f6a] to-[#566543]" },
-      { id: "img_bowl_2", alt: "Side profile of the serving bowl showing the wood-fired rim", tone: "from-[#9aa888] to-[#6f8060]" },
-      { id: "img_bowl_3", alt: "The bowl holding a green salad on a linen cloth", tone: "from-[#b7ada1] to-[#8c8174]" },
-      { id: "img_bowl_4", alt: "Close-up of the glaze break across the bowl's surface", tone: "from-[#c9744f] to-[#a8431f]" },
+      { id: "img_bowl_1", alt: "Wood-fired stoneware serving bowl, deep moss glaze, photographed from above", url: null, tone: "from-[#7f8f6a] to-[#566543]" },
+      { id: "img_bowl_2", alt: "Side profile of the serving bowl showing the wood-fired rim", url: null, tone: "from-[#9aa888] to-[#6f8060]" },
+      { id: "img_bowl_3", alt: "The bowl holding a green salad on a linen cloth", url: null, tone: "from-[#b7ada1] to-[#8c8174]" },
+      { id: "img_bowl_4", alt: "Close-up of the glaze break across the bowl's surface", url: null, tone: "from-[#c9744f] to-[#a8431f]" },
     ],
     variants: [
       { id: "var_bowl_moss", option_name: "Glaze", option_value: "Deep moss", stock: "in_stock" },
@@ -70,8 +70,8 @@ export const MOCK_PRODUCTS: MockProduct[] = [
     picked: true,
     keywords: ["mug", "mugs", "cup", "stoneware", "ceramic", "kitchen", "cook", "gift", "pair", "set"],
     images: [
-      { id: "img_mug_1", alt: "A pair of ember-glaze stoneware mugs side by side", tone: "from-[#c66a45] to-[#8f3f23]" },
-      { id: "img_mug_2", alt: "One mug held to show the curve of the handle", tone: "from-[#e9a766] to-[#cc7a33]" },
+      { id: "img_mug_1", alt: "A pair of ember-glaze stoneware mugs side by side", url: null, tone: "from-[#c66a45] to-[#8f3f23]" },
+      { id: "img_mug_2", alt: "One mug held to show the curve of the handle", url: null, tone: "from-[#e9a766] to-[#cc7a33]" },
     ],
     variants: [
       { id: "var_mug_ember", option_name: "Glaze", option_value: "Ember", stock: "in_stock" },
@@ -95,7 +95,7 @@ export const MOCK_PRODUCTS: MockProduct[] = [
     picked: false,
     keywords: ["linen", "runner", "table", "textile", "cloth", "dinner", "gift"],
     images: [
-      { id: "img_runner_1", alt: "Washed linen table runner draped down a wooden dining table", tone: "from-[#e6cbab] to-[#cBA077]" },
+      { id: "img_runner_1", alt: "Washed linen table runner draped down a wooden dining table", url: null, tone: "from-[#e6cbab] to-[#cBA077]" },
     ],
     variants: [
       { id: "var_runner_oat", option_name: "Colour", option_value: "Oat", stock: "low_stock" },
@@ -119,7 +119,7 @@ export const MOCK_PRODUCTS: MockProduct[] = [
     picked: false,
     keywords: ["olive", "dish", "ceramic", "kitchen", "small", "table", "gift"],
     images: [
-      { id: "img_olive_1", alt: "Hand-pinched ceramic olive dish holding green olives", tone: "from-[#c9744f] to-[#a8431f]" },
+      { id: "img_olive_1", alt: "Hand-pinched ceramic olive dish holding green olives", url: null, tone: "from-[#c9744f] to-[#a8431f]" },
     ],
     variants: [
       { id: "var_olive_clay", option_name: "Glaze", option_value: "Terracotta", stock: "in_stock" },
@@ -142,7 +142,7 @@ export const MOCK_PRODUCTS: MockProduct[] = [
     picked: false,
     keywords: ["salt", "cellar", "ceramic", "kitchen", "cook", "ember", "gift"],
     images: [
-      { id: "img_salt_1", alt: "Ember-glaze ceramic salt cellar with its lid resting beside it", tone: "from-[#e9a766] to-[#cc7a33]" },
+      { id: "img_salt_1", alt: "Ember-glaze ceramic salt cellar with its lid resting beside it", url: null, tone: "from-[#e9a766] to-[#cc7a33]" },
     ],
     variants: [
       { id: "var_salt_ember", option_name: "Glaze", option_value: "Ember", stock: "in_stock" },
@@ -165,7 +165,7 @@ export const MOCK_PRODUCTS: MockProduct[] = [
     picked: false,
     keywords: ["oak", "board", "wood", "serving", "cheese", "kitchen", "cook", "gift", "table"],
     images: [
-      { id: "img_board_1", alt: "Live-edge oak serving board with cheese and bread", tone: "from-[#b7ada1] to-[#8c8174]" },
+      { id: "img_board_1", alt: "Live-edge oak serving board with cheese and bread", url: null, tone: "from-[#b7ada1] to-[#8c8174]" },
     ],
     variants: [
       { id: "var_board_oak", option_name: "Wood", option_value: "Oak", stock: "in_stock" },
@@ -188,6 +188,7 @@ export function toRecommendation(
     stock: p.stock,
     reason,
     image_alt: p.images[0]?.alt ?? null,
+    image_url: p.images[0]?.url ?? null,
   };
 }
 

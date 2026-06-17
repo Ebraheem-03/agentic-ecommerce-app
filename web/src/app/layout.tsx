@@ -25,14 +25,40 @@ const outfit = localFont({
   variable: "--font-outfit",
 });
 
+// Base for resolving OG/canonical URLs. Override in prod via NEXT_PUBLIC_SITE_URL.
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
-  title: "Hearth — Agentic AI Commerce",
-  description: "A concierge agentic-commerce demo. Warm, crafted, and accessible.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "Hearth — Agentic AI Commerce",
+    template: "%s · Hearth",
+  },
+  description:
+    "A concierge agentic-commerce demo. Tell Ember what you're furnishing, gifting, or mending — recommendations come with reasons. Warm, crafted, and accessible.",
+  applicationName: "Hearth",
+  keywords: ["handmade", "agentic commerce", "AI concierge", "makers", "marketplace"],
+  openGraph: {
+    type: "website",
+    siteName: "Hearth",
+    title: "Hearth — the hearth for well-made things",
+    description:
+      "Shoppable by conversation. Ember knows every maker in the catalogue and recommends with reasons — never hype.",
+    url: siteUrl,
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Hearth — Agentic AI Commerce",
+    description:
+      "A concierge agentic-commerce demo. Recommendations with reasons, from real makers.",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  themeColor: "#b5512f",
 };
 
 export default function RootLayout({

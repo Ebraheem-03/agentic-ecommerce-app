@@ -16,6 +16,7 @@ import type {
 } from "@/lib/api-types";
 import type {
   BackendProductDetail,
+  BackendProductSummary,
   BackendSearchRow,
 } from "@/lib/adapters/catalog";
 import type { BackendAddressIn } from "@/lib/adapters/order";
@@ -174,6 +175,19 @@ export const shopApi = {
       `/products/${encodeURIComponent(idOrSlug)}`,
       { token, init: { cache: "no-store" } },
     );
+  },
+  /** Browse active products (optionally store-scoped). Returns `ProductSummary[]`. */
+  products(
+    params: { storeId?: string; limit?: number } = {},
+    token = "",
+  ): Promise<Envelope<BackendProductSummary[]>> {
+    const qs = new URLSearchParams();
+    if (params.storeId) qs.set("store_id", params.storeId);
+    qs.set("limit", String(params.limit ?? 20));
+    return apiFetch<BackendProductSummary[]>(`/products?${qs.toString()}`, {
+      token,
+      init: { cache: "no-store" },
+    });
   },
 
   /* cart */

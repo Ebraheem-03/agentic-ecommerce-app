@@ -102,6 +102,8 @@ export interface SearchResult {
   stock: StockState;
   /** Optional alt text for a real product image; null → token placeholder. */
   image_alt: string | null;
+  /** Real product image URL (remote, e.g. picsum). null → token placeholder. */
+  image_url: string | null;
   /** True when this row was surfaced by the concierge (★ Picked in the grid). */
   picked?: boolean;
 }
@@ -119,6 +121,8 @@ export interface ProductImage {
   id: string;
   /** Meaningful image → alt text (a11y A8). */
   alt: string;
+  /** Real product image URL (remote, e.g. picsum). null → token placeholder. */
+  url: string | null;
   /** Placeholder tone token while the real asset pipeline is not wired. */
   tone?: string;
 }
@@ -392,6 +396,8 @@ export interface SellerListing {
   currency: string;
   qty_on_hand: number;
   stock: StockState;
+  /** Real product image URL (remote). null → token placeholder. */
+  image_url: string | null;
 }
 
 /** Display-only: the seller dashboard's aggregate snapshot. */
@@ -455,6 +461,8 @@ export interface AgentRecommendation {
   /** The defensible "why" (J-BUY-02) rendered as `agent-recommendation-reason`. */
   reason: string;
   image_alt: string | null;
+  /** Real product image URL (remote). null → token placeholder. */
+  image_url: string | null;
 }
 
 /** The action the turn took; `outcome` null for pure clarify/refusal. */

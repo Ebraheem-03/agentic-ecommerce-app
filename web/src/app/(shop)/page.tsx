@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ProductThumb } from "@/components/shop/ProductThumb";
 import { StockBadge } from "@/components/shop/StockBadge";
+import { getFeaturedProducts } from "@/lib/product-data";
+import { formatPrice } from "@/lib/shop-client";
 
 /**
  * Home — token-truthful port of docs/brand/preview/screens/home.html, the
@@ -40,7 +42,11 @@ const FEATURED = [
   { slug: "ember-glaze-salt-cellar", maker: "North Light Co.", title: "Ember-glaze salt cellar", price: "$46", stock: "in_stock" as const, tone: "from-[#e9a766] to-[#cc7a33]" },
 ];
 
-export default function HomePage(): JSX.Element {
+export default async function HomePage(): Promise<JSX.Element> {
+  // Real "Picked for the season" listings (live catalogue); fall back to the
+  // static editorial fixtures if the catalogue can't be reached.
+  const featured = await getFeaturedProducts(4);
+
   return (
     <div data-testid="home-page" className="flex flex-col gap-2">
       {/* Hero */}
@@ -119,25 +125,52 @@ export default function HomePage(): JSX.Element {
           </Button>
         </div>
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-          {FEATURED.map((p) => (
-            <Link
-              key={p.slug}
-              href={`/product/${p.slug}`}
-              className="overflow-hidden rounded-2xl border border-border bg-surface no-underline transition-all hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(27,22,17,.04),0_14px_34px_-16px_rgba(27,22,17,.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-strong"
-            >
-              <ProductThumb tone={p.tone} className="aspect-[4/3]" />
-              <div className="flex flex-col gap-2 px-[18px] pb-[18px] pt-4">
-                <span className="text-caption font-medium uppercase tracking-wide text-accent-text">
-                  {p.maker}
-                </span>
-                <div className="text-h4 font-medium text-text">{p.title}</div>
-                <div className="flex items-center justify-between">
-                  <span className="font-display font-semibold text-text">{p.price}</span>
-                  <StockBadge stock={p.stock} />
-                </div>
-              </div>
-            </Link>
-          ))}
+          {featured.length > 0
+            ? featured.map((p, i) => (
+                <Link
+                  key={p.id}
+                  href={`/product/${p.slug}`}
+                  className="overflow-hidden rounded-2xl border border-border bg-surface no-underline transition-all hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(27,22,17,.04),0_14px_34px_-16px_rgba(27,22,17,.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-strong"
+                >
+                  <ProductThumb
+                    src={p.image_url}
+                    tone={FEATURED[i % FEATURED.length]?.tone}
+                    alt={p.image_alt ?? `${p.title} by ${p.maker}`}
+                    className="aspect-[4/3]"
+                  />
+                  <div className="flex flex-col gap-2 px-[18px] pb-[18px] pt-4">
+                    <span className="text-caption font-medium uppercase tracking-wide text-accent-text">
+                      {p.maker}
+                    </span>
+                    <div className="text-h4 font-medium text-text">{p.title}</div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-display font-semibold text-text">
+                        {formatPrice(p.price_cents, p.currency)}
+                      </span>
+                      <StockBadge stock={p.stock} />
+                    </div>
+                  </div>
+                </Link>
+              ))
+            : FEATURED.map((p) => (
+                <Link
+                  key={p.slug}
+                  href={`/product/${p.slug}`}
+                  className="overflow-hidden rounded-2xl border border-border bg-surface no-underline transition-all hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(27,22,17,.04),0_14px_34px_-16px_rgba(27,22,17,.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-strong"
+                >
+                  <ProductThumb tone={p.tone} className="aspect-[4/3]" />
+                  <div className="flex flex-col gap-2 px-[18px] pb-[18px] pt-4">
+                    <span className="text-caption font-medium uppercase tracking-wide text-accent-text">
+                      {p.maker}
+                    </span>
+                    <div className="text-h4 font-medium text-text">{p.title}</div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-display font-semibold text-text">{p.price}</span>
+                      <StockBadge stock={p.stock} />
+                    </div>
+                  </div>
+                </Link>
+              ))}
         </div>
       </section>
 

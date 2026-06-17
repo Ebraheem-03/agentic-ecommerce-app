@@ -81,19 +81,66 @@ export function toFulfilItems(
 }
 
 /**
+ * A `ProductSummary` on the wire, as returned by `GET /products?store_id=`.
+ * Snake_case (no camel alias generator) — only the fields the listings table
+ * needs are typed here. `from_price_minor` carries minor units.
+ */
+export interface BackendStoreProduct {
+  id: string;
+  title: string;
+  slug: string;
+  status: string;
+  store: { id: string; name: string };
+  from_price_minor: number;
+  currency: string;
+  stock: "in_stock" | "low_stock" | "out_of_stock";
+  primary_image: { url: string | null } | null;
+}
+
+/** A wire stock string → the FE `StoreStatus` shown in the listing row. */
+function listingStatus(productStatus: string): SellerListing["status"] {
+  if (productStatus === "active") return "active";
+  if (productStatus === "suspended") return "suspended";
+  return "draft";
+}
+
+/** Flatten a store-scoped `ProductSummary[]` → the listings/inventory rows. */
+export function toListings(products: BackendStoreProduct[]): SellerListing[] {
+  return products.map((p) => ({
+    product_id: p.id,
+    slug: p.slug,
+    title: p.title,
+    status: listingStatus(p.status),
+    price_minor: p.from_price_minor,
+    currency: p.currency,
+    // The catalogue summary carries no per-listing on-hand count; the stock
+    // signal is the live truth we surface. `qty_on_hand` stays 0 as a neutral
+    // placeholder until an inventory endpoint exists (see proxy note).
+    qty_on_hand: 0,
+    stock: p.stock,
+    image_url: p.primary_image?.url ?? null,
+  }));
+}
+
+/**
  * Compose the dashboard view-model from the live fan-out results. The orders the
  * seller must fulfil are surfaced as `OrderSummary` rows, and their seller-scoped
  * lines (fetched per order, concurrently) are flattened into `order_items`.
- * `listings` has no live source today (empty).
+ * `store_name` + `listings` are resolved by the proxy from the seller's own
+ * catalogue (via `GET /products?store_id=`); when the store can't be resolved
+ * (a seller with no nudges and no orders) they fall back to the neutral default
+ * + the accessible empty state.
  */
 export function toSellerDashboard(
   orders: OrderSummary[],
   orderDetails: SellerOrderDetail[],
   nudges: NudgeOut[],
+  storeName: string,
+  listings: SellerListing[],
 ): SellerDashboard {
   return {
-    store_name: "Your store",
-    listings: [] as SellerListing[],
+    store_name: storeName,
+    listings,
     orders,
     order_items: toFulfilItems(orderDetails),
     nudges,

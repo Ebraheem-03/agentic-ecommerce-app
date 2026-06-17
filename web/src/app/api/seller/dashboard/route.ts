@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
-import type { Envelope, NudgeOut, OrderSummary, SellerDashboard } from "@/lib/api-types";
+import type {
+  Envelope,
+  NudgeOut,
+  OrderSummary,
+  SellerDashboard,
+  SellerListing,
+} from "@/lib/api-types";
+import type { BackendProductDetail } from "@/lib/adapters/catalog";
 import { apiFetch } from "@/lib/api";
 import { requireToken, toErrorResponse } from "@/lib/proxy";
 import {
+  toListings,
   toSellerDashboard,
+  type BackendStoreProduct,
   type SellerOrderDetail,
 } from "@/lib/adapters/seller";
 
@@ -24,6 +33,16 @@ import {
  * but seed data is tiny), then flatten `items[]` → `SellerFulfilItem[]`. Each
  * line's `id` is the `order_item_id` the fulfil PATCH targets. Mapping + the
  * wire-casing note live in `@/lib/adapters/seller`.
+ *
+ * Store name + listings (Task 7): the backend has NO `GET /seller/store` and no
+ * seller-scoped listings endpoint, but `GET /products?store_id=` IS store-
+ * filterable and `GET /products/{id}` carries `store{id,name}`. So we resolve the
+ * seller's own store WITHOUT a backend change: take a `product_id` the seller
+ * owns from their nudges (grounded in their catalogue), fetch that product to
+ * learn `store.id` + `store.name`, then list `GET /products?store_id=` for the
+ * full inventory snapshot. A seller with NO nudges can't be resolved this way →
+ * neutral fallback + the Day-24 empty state. (A `GET /seller/store` would make
+ * this first-class — flagged for Orion.)
  */
 export const dynamic = "force-dynamic";
 
@@ -58,10 +77,41 @@ export async function GET(): Promise<NextResponse> {
       .map((env) => env.data)
       .filter((d): d is SellerOrderDetail => d != null);
 
+    const nudges = nudgesEnv.data ?? [];
+
+    // Resolve the seller's OWN store + listings from a product they own. We pick
+    // a seed product_id from their nudges (each nudge references one of their
+    // listings), learn the store from its detail, then list the store's catalogue.
+    let storeName = "Your store";
+    let listings: SellerListing[] = [];
+    const seedProductId = nudges[0]?.product_id;
+    if (seedProductId) {
+      try {
+        const seedEnv = await apiFetch<BackendProductDetail>(
+          `/products/${encodeURIComponent(seedProductId)}`,
+          { token: auth.token, init: { cache: "no-store" } },
+        );
+        const store = seedEnv.data?.store;
+        if (store) {
+          storeName = store.name;
+          const productsEnv = await apiFetch<BackendStoreProduct[]>(
+            `/products?store_id=${encodeURIComponent(store.id)}&limit=100`,
+            { token: auth.token, init: { cache: "no-store" } },
+          );
+          listings = toListings(productsEnv.data ?? []);
+        }
+      } catch {
+        // Store resolution is best-effort — degrade to the neutral fallback +
+        // empty listings table rather than failing the whole dashboard.
+      }
+    }
+
     const dashboard = toSellerDashboard(
       orders,
       orderDetails,
-      nudgesEnv.data ?? [],
+      nudges,
+      storeName,
+      listings,
     );
     const envelope: Envelope<SellerDashboard> = { data: dashboard, meta: null };
     return NextResponse.json(envelope);

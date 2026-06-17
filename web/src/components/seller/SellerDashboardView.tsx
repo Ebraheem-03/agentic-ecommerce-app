@@ -17,6 +17,7 @@ import {
 } from "@/lib/shop-client";
 import { Button } from "@/components/ui/button";
 import { StockBadge } from "@/components/shop/StockBadge";
+import { ProductThumb } from "@/components/shop/ProductThumb";
 import { EmberMark } from "@/components/agent/agent-icons";
 
 /**
@@ -115,10 +116,19 @@ export function SellerDashboardView(): JSX.Element {
                 data.listings.map((l) => (
                   <tr key={l.product_id}>
                     <th scope="row" className="px-5 py-3 font-medium text-text">
-                      <Link href={`/product/${l.slug}`} className="hover:text-accent-strong">{l.title}</Link>
+                      <Link href={`/product/${l.slug}`} className="flex items-center gap-3 hover:text-accent-strong">
+                        <ProductThumb
+                          src={l.image_url}
+                          alt=""
+                          className="h-10 w-10 flex-none rounded-[8px] border border-border"
+                        />
+                        <span>{l.title}</span>
+                      </Link>
                     </th>
                     <td className="px-5 py-3 text-text">{formatPrice(l.price_minor, l.currency)}</td>
-                    <td className="px-5 py-3 text-text">{l.qty_on_hand}</td>
+                    <td className="px-5 py-3 text-text-muted">
+                      {l.qty_on_hand > 0 ? l.qty_on_hand : <span aria-label="Not tracked">&mdash;</span>}
+                    </td>
                     <td className="px-5 py-3"><StockBadge stock={l.stock} /></td>
                   </tr>
                 ))

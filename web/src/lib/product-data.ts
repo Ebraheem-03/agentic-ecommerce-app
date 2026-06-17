@@ -1,7 +1,7 @@
 import { ApiError, shopApi } from "@/lib/api";
 import { getSessionToken } from "@/lib/session";
-import { toProductDetail } from "@/lib/adapters/catalog";
-import type { ProductDetail } from "@/lib/api-types";
+import { toProductDetail, toSearchResult } from "@/lib/adapters/catalog";
+import type { ProductDetail, SearchResult } from "@/lib/api-types";
 
 /**
  * Server-side product resolver for the detail route (Day-22 flip-to-live,
@@ -25,5 +25,24 @@ export async function getProduct(
   } catch (err) {
     if (err instanceof ApiError) return null;
     return null;
+  }
+}
+
+/**
+ * Server-side featured-rail resolver for the home page. Pulls a handful of live
+ * active products (`GET /products`) and flattens them to `SearchResult[]` so the
+ * "Picked for the season" rail shows REAL listings + imagery instead of static
+ * fixtures. Any fault degrades to an empty rail (the home page renders without
+ * it) rather than 500-ing the route. Public endpoint; token attached if present.
+ */
+export async function getFeaturedProducts(
+  limit = 4,
+): Promise<SearchResult[]> {
+  const token = getSessionToken();
+  try {
+    const { data } = await shopApi.products({ limit }, token ?? "");
+    return (data ?? []).map(toSearchResult);
+  } catch {
+    return [];
   }
 }

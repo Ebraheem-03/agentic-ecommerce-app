@@ -99,6 +99,7 @@ export function toSearchResult(p: BackendProductSummary): SearchResult {
     currency: p.currency,
     stock: p.stock,
     image_alt: p.primary_image?.alt ?? null,
+    image_url: p.primary_image?.url ?? null,
   };
 }
 
@@ -111,7 +112,8 @@ function toProductImage(img: BackendImage): ProductImage {
   return {
     id: img.id,
     alt: img.alt ?? "",
-    // No `tone` from live — components fall back to a token placeholder when absent.
+    url: img.url ?? null,
+    // No `tone` from live — components fall back to a token placeholder when `url` is null.
   };
 }
 
@@ -160,5 +162,6 @@ export function toAgentRecommendation(
     stock: p.stock,
     reason: r.reason,
     image_alt: p.primary_image?.alt ?? null,
+    image_url: p.primary_image?.url ?? null,
   };
 }

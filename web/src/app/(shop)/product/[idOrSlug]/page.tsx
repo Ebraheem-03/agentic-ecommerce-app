@@ -70,6 +70,7 @@ export default async function ProductPage({
         <div className="flex flex-col gap-3">
           <ProductThumb
             testId="product-image"
+            src={hero?.url}
             tone={hero?.tone}
             alt={hero?.alt ?? `${product.title} by ${product.maker}`}
             className="aspect-square rounded-[18px] border border-border"
@@ -79,6 +80,7 @@ export default async function ProductPage({
               {thumbs.map((img) => (
                 <li key={img.id}>
                   <ProductThumb
+                    src={img.url}
                     tone={img.tone}
                     alt={img.alt}
                     className="aspect-square rounded-[12px] border border-border"
