@@ -9,18 +9,92 @@ windows / shipping times / etc. are concrete.
 
 from __future__ import annotations
 
+from itertools import count
 from typing import Any, TypedDict
 
+# --------------------------------------------------------------------------- imagery
+# Curated, category-matched product photography for the image-led "editorial gallery"
+# design. Each entry is an Unsplash *direct asset* photo ID — the URL we build returns
+# HTTP 200 directly (no 302 redirect like the old picsum seeds) and is high enough
+# resolution for full-bleed editorial use. Every ID in these pools was verified to
+# resolve 200 before commit (see the seed task's curl loop).
+#
+# Pools are keyed by *semantic subject* (not store), so a product is matched to the
+# kind of thing it is — ceramics → mugs/bowls/stoneware, woodwork → trays/boards, etc.
+# A product is assigned a photo deterministically by its slug (stable across reseeds),
+# and the modulo over a 3–5 deep pool means products in the same category don't all
+# share a single photo.
+_CATEGORY_IMAGES: dict[str, list[str]] = {
+    # mugs, bowls, plates, stoneware vases
+    "ceramics": [
+        "1514228742587-6b1558fcca3d",
+        "1556910103-1c02745aae4d",
+        "1610701596007-11502861dcfa",
+        "1565193566173-7a0ee3dbe261",
+        "1493106641515-6b5631de4bb9",
+    ],
+    # wallets, belts, totes/bags, small leather goods
+    "leather": [
+        "1627123424574-724758594e93",
+        "1604644401890-0bd678c83788",
+        "1548036328-c9fa89d128fa",
+        "1591561954557-26941169b49e",
+        "1553062407-98eeb64c6a62",
+    ],
+    # linens, napkins, throws, blankets, woven towels
+    "textiles": [
+        "1584100936595-c0654b55a2e2",
+        "1522771739844-6a9f6d5f14af",
+        "1616627561839-074385245ff6",
+        "1576566588028-4147f3842f27",
+        "1600369671236-e74521d4b6ad",
+    ],
+    # wooden boards, trays, carved utensils
+    "woodwork": [
+        "1593618998160-e34014e67546",
+        "1578991624414-276ef23a534f",
+        "1556909114-f6e7ad7d3136",
+        "1610701596061-2ecf227e85b2",
+        "1605883705077-8d3d3cebe78c",
+    ],
+    # poured candles in glass / vessels
+    "candle": [
+        "1603006905003-be475563bc59",
+        "1572726729207-a78d6feb18d7",
+        "1518972559570-7cc1309f3229",
+    ],
+    # tins, balms, soaps, apothecary
+    "balm": [
+        "1556228578-8c89e6adf883",
+        "1556228720-195a672e8a03",
+        "1570172619644-dfd03ed5d881",
+        "1601049541289-9b1b7bbbfe19",
+    ],
+}
 
-def _img(slug: str) -> str:
-    """Deterministic, always-resolving product image URL.
 
-    picsum.photos returns a real photo keyed by ``seed`` — stable per slug across
-    reseeds and reliably loadable from a browser (no API key, no expiring asset id).
-    Square 800x800 to suit the catalog card + detail grid. This keeps the demo from
-    rendering flat color blocks while staying deterministic for idempotent reseeds.
+# Per-group round-robin cursor. Products are assigned a photo in declaration order, so
+# the Nth product of a category gets pool[N % len(pool)] — this *guarantees* variety
+# within a category (no two adjacent products collide until the pool wraps), unlike a
+# per-slug hash which can pile several products onto one photo by chance. Declaration
+# order is fixed in this module, so assignments are stable across reseeds (idempotent).
+_group_cursors: dict[str, Any] = {}
+
+
+def _img(slug: str, group: str) -> str:
+    """Curated, category-matched, direct-200 product image URL.
+
+    Assigns the next photo in ``group``'s Unsplash pool, round-robin in product
+    declaration order, so photos are varied within a category yet deterministic and
+    stable across reseeds. The asset URL returns 200 directly — no redirect — and is
+    sized for the full-bleed editorial gallery (1200px, auto-format, cropped square).
+
+    ``slug`` is accepted for call-site readability / future per-slug overrides.
     """
-    return f"https://picsum.photos/seed/hearth-{slug}/800/800"
+    pool = _CATEGORY_IMAGES[group]
+    cursor = _group_cursors.setdefault(group, count())
+    photo_id = pool[next(cursor) % len(pool)]
+    return f"https://images.unsplash.com/photo-{photo_id}?w=1200&q=80&auto=format&fit=crop"
 
 
 class UserSeed(TypedDict):
@@ -111,8 +185,8 @@ STORES: list[StoreSeed] = [
                 "deeper at the base, like a receding tide. Comfortable thumb rest, "
                 "dishwasher-safe, made to take daily.",
                 "attributes": {"material": "stoneware", "capacity_oz": 12, "dishwasher_safe": True},
-                "image_url": _img("tide-pour-over-mug"),
-                "image_alt": "Matte sage stoneware mug with a pooled glaze base",
+                "image_url": _img("tide-pour-over-mug", "ceramics"),
+                "image_alt": "Hand-thrown matte stoneware mug on a neutral surface",
                 "variants": [
                     {
                         "sku": "SOL-MUG-SAGE",
@@ -155,7 +229,7 @@ STORES: list[StoreSeed] = [
                 "description": "A wide, shallow serving bowl that makes a salad look like "
                 "the main event. Reactive glaze with flecks of iron; food-safe.",
                 "attributes": {"material": "stoneware", "diameter_cm": 28, "food_safe": True},
-                "image_url": _img("ebb-serving-bowl"),
+                "image_url": _img("ebb-serving-bowl", "ceramics"),
                 "image_alt": "Wide shallow stoneware serving bowl, speckled glaze",
                 "variants": [
                     {
@@ -185,7 +259,7 @@ STORES: list[StoreSeed] = [
                 "speckle and a glaze that breaks lighter at the edge. Stackable, oven- and "
                 "dishwasher-safe.",
                 "attributes": {"material": "stoneware", "set_size": 2, "diameter_cm": 27},
-                "image_url": _img("drift-dinner-plates"),
+                "image_url": _img("drift-dinner-plates", "ceramics"),
                 "image_alt": "Two speckled stoneware dinner plates stacked",
                 "variants": [
                     {
@@ -214,7 +288,7 @@ STORES: list[StoreSeed] = [
                 "description": "A slender hand-thrown bud vase in a deep reactive green, "
                 "made for a single stem or a few sprigs of foraged greenery.",
                 "attributes": {"material": "stoneware", "height_cm": 16, "watertight": True},
-                "image_url": _img("kelp-bud-vase"),
+                "image_url": _img("kelp-bud-vase", "ceramics"),
                 "image_alt": "Slender deep-green stoneware bud vase",
                 "variants": [
                     {
@@ -245,8 +319,8 @@ STORES: list[StoreSeed] = [
                 "description": "A slim four-pocket card wallet in vegetable-tanned leather "
                 "that darkens beautifully with use. Holds 8–10 cards and folded bills.",
                 "attributes": {"material": "veg-tan leather", "card_capacity": 10},
-                "image_url": _img("carryall-card-wallet"),
-                "image_alt": "Slim tan leather card wallet, hand-stitched edges",
+                "image_url": _img("carryall-card-wallet", "leather"),
+                "image_alt": "Slim hand-stitched leather card wallet",
                 "variants": [
                     {
                         "sku": "HER-WAL-TAN",
@@ -288,7 +362,7 @@ STORES: list[StoreSeed] = [
                 "description": "A 38mm full-grain belt with a solid brass buckle. Cut and "
                 "punched to order, so it actually fits.",
                 "attributes": {"material": "full-grain leather", "width_mm": 38, "buckle": "brass"},
-                "image_url": _img("field-belt"),
+                "image_url": _img("field-belt", "leather"),
                 "image_alt": "Brown full-grain leather belt with brass buckle",
                 "variants": [
                     {
@@ -318,7 +392,7 @@ STORES: list[StoreSeed] = [
                 "linen-stitched base. Carries a laptop, a notebook, and the rest of your "
                 "day without complaint.",
                 "attributes": {"material": "full-grain leather", "fits_laptop_in": 15},
-                "image_url": _img("dispatch-leather-tote"),
+                "image_url": _img("dispatch-leather-tote", "leather"),
                 "image_alt": "Tan full-grain leather tote with riveted handles",
                 "variants": [
                     {
@@ -355,8 +429,8 @@ STORES: list[StoreSeed] = [
                 "description": "A small hand-stitched leather fob with a solid brass ring. "
                 "The kind of little upgrade you notice every time you reach for your keys.",
                 "attributes": {"material": "veg-tan leather", "hardware": "brass"},
-                "image_url": _img("keystone-keychain"),
-                "image_alt": "Small tan leather keychain with a brass ring",
+                "image_url": _img("keystone-keychain", "leather"),
+                "image_alt": "Small hand-stitched leather keychain fob",
                 "variants": [
                     {
                         "sku": "HER-KEY-TAN",
@@ -386,8 +460,8 @@ STORES: list[StoreSeed] = [
                 "description": "Stonewashed linen napkins with a hand-knotted fringe. They "
                 "get softer every wash and shrug off a spilled glass of wine.",
                 "attributes": {"material": "linen", "set_size": 4, "machine_washable": True},
-                "image_url": _img("morning-linen-napkins"),
-                "image_alt": "Folded set of four oat-colored linen napkins with fringe",
+                "image_url": _img("morning-linen-napkins", "textiles"),
+                "image_alt": "Folded stonewashed linen napkins",
                 "variants": [
                     {
                         "sku": "OKO-NAP-OAT",
@@ -423,8 +497,8 @@ STORES: list[StoreSeed] = [
                 "description": "A generously sized handwoven cotton throw with a subtle "
                 "herringbone weave. Light enough for summer, warm enough for a cool evening.",
                 "attributes": {"material": "cotton", "dimensions_cm": "130x180"},
-                "image_url": _img("harbor-throw"),
-                "image_alt": "Folded blue-and-cream herringbone cotton throw",
+                "image_url": _img("harbor-throw", "textiles"),
+                "image_alt": "Folded handwoven cotton throw",
                 "variants": [
                     {
                         "sku": "OKO-THROW-HARBOR",
@@ -459,7 +533,7 @@ STORES: list[StoreSeed] = [
                 "border. Warm without weight, the one you steal from the foot of the bed on "
                 "a cold night.",
                 "attributes": {"material": "wool", "dimensions_cm": "150x200"},
-                "image_url": _img("dune-wool-blanket"),
+                "image_url": _img("dune-wool-blanket", "textiles"),
                 "image_alt": "Folded cream wool blanket with a natural border",
                 "variants": [
                     {
@@ -496,7 +570,7 @@ STORES: list[StoreSeed] = [
                 "description": "Absorbent waffle-weave linen tea towels with a woven stripe. "
                 "They actually dry dishes instead of pushing the water around.",
                 "attributes": {"material": "linen", "set_size": 2, "weave": "waffle"},
-                "image_url": _img("field-tea-towels"),
+                "image_url": _img("field-tea-towels", "textiles"),
                 "image_alt": "Two striped waffle-weave linen tea towels",
                 "variants": [
                     {
@@ -528,7 +602,7 @@ STORES: list[StoreSeed] = [
                 "self-heals small cuts. Juice groove on one side, flat prep surface on the "
                 "other.",
                 "attributes": {"wood": "walnut", "dimensions_cm": "40x28x4", "reversible": True},
-                "image_url": _img("grain-cutting-board"),
+                "image_url": _img("grain-cutting-board", "woodwork"),
                 "image_alt": "Walnut end-grain cutting board with juice groove",
                 "variants": [
                     {
@@ -556,8 +630,8 @@ STORES: list[StoreSeed] = [
                 "description": "A matched pair of cherry serving spoons, hand-carved with a "
                 "comfortable, slightly flattened handle. Won't scratch your good pans.",
                 "attributes": {"wood": "cherry", "set_size": 2},
-                "image_url": _img("nara-serving-spoons"),
-                "image_alt": "Pair of hand-carved cherry serving spoons",
+                "image_url": _img("nara-serving-spoons", "woodwork"),
+                "image_alt": "Hand-carved wooden serving spoons",
                 "variants": [
                     {
                         "sku": "WAT-SPOON-CHERRY",
@@ -578,8 +652,8 @@ STORES: list[StoreSeed] = [
                 "tablespoons. Smooth enough to live in the bean jar, pretty enough to leave "
                 "on the counter.",
                 "attributes": {"wood": "walnut", "capacity_tbsp": 2},
-                "image_url": _img("stack-coffee-scoop"),
-                "image_alt": "Hand-carved walnut coffee scoop in coffee beans",
+                "image_url": _img("stack-coffee-scoop", "woodwork"),
+                "image_alt": "Hand-carved walnut coffee scoop",
                 "variants": [
                     {
                         "sku": "WAT-SCOOP-WAL",
@@ -606,8 +680,8 @@ STORES: list[StoreSeed] = [
                 "description": "A low hand-finished walnut tray for keys, coins, and the "
                 "small things that pile up by the door. Felt-footed so it won't scratch.",
                 "attributes": {"wood": "walnut", "dimensions_cm": "22x14x2"},
-                "image_url": _img("ridge-walnut-tray"),
-                "image_alt": "Low walnut catch-all tray holding keys and coins",
+                "image_url": _img("ridge-walnut-tray", "woodwork"),
+                "image_alt": "Low hand-finished walnut catch-all tray",
                 "variants": [
                     {
                         "sku": "WAT-TRAY-WAL",
@@ -637,8 +711,8 @@ STORES: list[StoreSeed] = [
                 "description": "A 9oz soy candle in cedar, amber, and a whisper of smoke — "
                 "like a fire two rooms away. Burns clean for about 50 hours.",
                 "attributes": {"wax": "soy", "burn_hours": 50, "scent": "cedar & amber"},
-                "image_url": _img("hearthlight-candle"),
-                "image_alt": "Amber glass soy candle with a kraft label",
+                "image_url": _img("hearthlight-candle", "candle"),
+                "image_alt": "Poured soy candle in a glass vessel",
                 "variants": [
                     {
                         "sku": "FEN-CANDLE-CEDAR",
@@ -680,8 +754,8 @@ STORES: list[StoreSeed] = [
                 "description": "A non-greasy beeswax and shea balm for hands that have done "
                 "real work. Light calendula scent, absorbs fast.",
                 "attributes": {"base": "beeswax & shea", "size_ml": 60, "synthetic_free": True},
-                "image_url": _img("salve-hand-balm"),
-                "image_alt": "Small tin of pale yellow hand balm, open",
+                "image_url": _img("salve-hand-balm", "balm"),
+                "image_alt": "Small tin of natural hand balm",
                 "variants": [
                     {
                         "sku": "FEN-BALM-CAL",
