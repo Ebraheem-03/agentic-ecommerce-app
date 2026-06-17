@@ -52,7 +52,11 @@ services:
       context: ./web
       dockerfile: Dockerfile
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      # Server-side proxy target (Next route handlers → FastAPI). Inside the
+      # compose network the api service is reachable as `api:8000`, NOT localhost
+      # (which would be the web container itself). Read at runtime by
+      # web/src/lib/api.ts (a non-NEXT_PUBLIC var so it isn't build-time-inlined).
+      API_BASE_URL: ${API_BASE_URL:-http://api:8000}
       PORT: 3000
     ports:
       - "${WEB_PORT:-3000}:3000"

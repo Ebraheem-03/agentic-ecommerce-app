@@ -35,9 +35,18 @@ import type { BackendAddressIn } from "@/lib/adapters/order";
  * browser-storage assumption (per the test guidance).
  */
 
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ??
-  "http://localhost:8000";
+// Backend origin for SERVER-SIDE calls only (route handlers / server components;
+// the browser never calls the backend directly — it goes through same-origin
+// `/api/*`). Resolved at RUNTIME from `API_BASE_URL` so it can be set per
+// environment without a rebuild (in docker-compose this is `http://api:8000`,
+// the api service host — `localhost` would resolve to the web container itself).
+// `NEXT_PUBLIC_API_BASE_URL` stays supported as a fallback for local `next dev`,
+// but note NEXT_PUBLIC_* is inlined at build time and can't be set per-container.
+export const API_BASE_URL = (
+  process.env.API_BASE_URL ??
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
+  "http://localhost:8000"
+).replace(/\/$/, "");
 
 /** Thrown on any non-2xx; carries the canonical error body for the UI. */
 export class ApiError extends Error {
